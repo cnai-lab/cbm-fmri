@@ -29,7 +29,7 @@ class GraphsDataset(Dataset):
     def len(self):
         return len(self.csv)
 
-    def get(self, idx):
+    def get(self, idx: int):
         full_path = os.path.join(self.root, self.filenames[idx])
         load_scans(full_path)
 

@@ -1,8 +1,10 @@
 import numpy as np
 from nilearn.input_data import NiftiSpheresMasker
 from nilearn.connectome import ConnectivityMeasure
-from typing import List, Callable, Union, Tuple
+from typing import List, Callable, Union, Tuple, NoReturn
 import networkx as nx
+import os
+from paths import *
 import nilearn.datasets as datasets
 from copy import deepcopy
 
@@ -20,6 +22,8 @@ def load_scans(scan_paths: List[str], data_type: str = 'correlation') -> \
         return time_series_lst
 
     correlations = time_series_to_correlation(time_series_lst)
+    names = [os.path.basename(path) for path in scan_paths]
+    save_correlations(names, correlations)
 
     if data_type == 'correlation':
         return correlations
@@ -28,6 +32,12 @@ def load_scans(scan_paths: List[str], data_type: str = 'correlation') -> \
         return time_series_lst, correlations
 
     raise ValueError('Data type should be one of the [correlation, time_series, both]')
+
+
+def save_correlations(names: List[str], correlations: List[np.ndarray]) -> NoReturn:
+    for name, corr in zip(names, correlations):
+        path_to_save = os.path.join(SAVE_PATH, name)
+        np.save(f'{path_to_save}.npy', corr)
 
 
 def path_to_time_series(path: str) -> np.ndarray:

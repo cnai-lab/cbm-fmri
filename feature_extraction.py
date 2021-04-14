@@ -28,5 +28,7 @@ def global_features(graphs: List[nx.Graph], global_func: List[Callable]) -> Defa
     return feat_as_dic
 
 
-
-
+def main_global_features(graphs: List[nx.Graph]):
+    global_funcs = [nx.density, nx.betweenness_centrality, nx.eigenvector_centrality,
+                    nx.katz_centrality_numpy, ]
+    local_features = [nx.degree, nx.degree_centrality, nx.closeness_centrality, ]
