@@ -7,23 +7,30 @@ import os
 from paths import *
 import nilearn.datasets as datasets
 from copy import deepcopy
+from configuration import *
 
 
 def load_scans(scan_paths: List[str], data_type: str = 'correlation') -> \
         Union[List[np.ndarray], Tuple[List[np.ndarray], List[np.ndarray]]]:
 
     time_series_lst, corr_lst = [], []
+    names = [os.path.basename(path) for path in scan_paths]
+
+    if not default_params.getboolean('save_scans'):
+        return load_saved_scans(names)
 
     for path in scan_paths:
         time_series = path_to_time_series(path)
         time_series_lst.append(time_series)
 
+    # save_numpy_lst(names, time_series_lst)
+
     if data_type == 'time_series':
         return time_series_lst
 
     correlations = time_series_to_correlation(time_series_lst)
-    names = [os.path.basename(path) for path in scan_paths]
-    save_correlations(names, correlations)
+
+    save_numpy_lst(names, correlations)
 
     if data_type == 'correlation':
         return correlations
@@ -34,7 +41,15 @@ def load_scans(scan_paths: List[str], data_type: str = 'correlation') -> \
     raise ValueError('Data type should be one of the [correlation, time_series, both]')
 
 
-def save_correlations(names: List[str], correlations: List[np.ndarray]) -> NoReturn:
+def load_saved_scans(names: List[str]) -> List[np.ndarray]:
+    correlations = []
+    for name in names:
+        path_to_load = os.path.join(SAVE_PATH, name)
+        correlations.append(np.load(f'{path_to_load}.npy'))
+    return correlations
+
+
+def save_numpy_lst(names: List[str], correlations: List[np.ndarray]) -> NoReturn:
     for name, corr in zip(names, correlations):
         path_to_save = os.path.join(SAVE_PATH, name)
         np.save(f'{path_to_save}.npy', corr)
@@ -55,13 +70,38 @@ def time_series_to_correlation(time_series_lts: List[np.ndarray], is_abs: bool =
 
     connectivity_measure = ConnectivityMeasure(kind='correlation')
     corr_mat_lst = connectivity_measure.fit_transform(time_series_lts)
-    corr_mat_lst_fixed = [np.fill_diagonal(corr_mat) for corr_mat in corr_mat_lst] # Are we want this?
+    for corr_mat in corr_mat_lst:
+        np.fill_diagonal(corr_mat, 0)
     if is_abs:
-        corr_mat_lst_fixed = [np.abs(corr_mat) for corr_mat in corr_mat_lst_fixed]
+        corr_mat_lst = [np.abs(corr_mat) for corr_mat in corr_mat_lst]
     else:
-        for corr_mat in corr_mat_lst_fixed:
+        for corr_mat in corr_mat_lst:
             corr_mat[corr_mat < 0] = 0
-    return corr_mat_lst_fixed
+    return corr_mat_lst
+
+
+def build_graphs_from_corr(filter_type, corr_lst: List[np.ndarray], param) -> List[nx.Graph]:
+    labels = get_labels()
+    graphs = []
+    for corr in corr_lst:
+        graph = nx.from_numpy_matrix(corr, parallel_edges=False)
+        nx.set_node_attributes(graph, dict(zip(range(len(labels)), labels)), 'label')
+        graphs.append(graph)
+    return filter_edges(filter_type, graphs, param)
+
+
+def get_labels() -> List[str]:
+    '''
+
+    :return: labels of power atlas
+    '''
+    power = datasets.fetch_coords_power_2011()
+    coordinates = np.vstack((power.rois['x'], power.rois['y'], power.rois['z'])).T
+    labels = []
+    for coordinate in coordinates:
+        coordinate_str = np.array2string(coordinate)
+        labels.append(coordinate_str)
+    return labels
 
 
 def filter_edges(filter_type: str, graphs: List[nx.Graph], param) -> List[nx.Graph]:
@@ -104,7 +144,7 @@ def filter_by_dens(graph: nx.Graph, density: float) -> nx.Graph:
 def filter_by_amount(graph: nx.Graph, amount_edges: int) -> nx.Graph:
     sorted_edges = sort_graph_edges(graph)
     norm_g = deepcopy(graph)
-    norm_g.remove_edges_from([sorted_edges[:-amount_edges]])
+    norm_g.remove_edges_from(sorted_edges[:-amount_edges])
     return norm_g
 
 

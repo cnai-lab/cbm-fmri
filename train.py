@@ -4,6 +4,7 @@ from typing import Dict, Union
 import pandas as pd
 from sklearn.metrics import accuracy_score,auc
 import numpy as np
+from sklearn import preprocessing
 from torch import nn
 from model import Net
 
@@ -12,6 +13,7 @@ def train_model(df: pd.DataFrame, y: np.ndarray) -> Dict:
     model = load_model('rf')
     loo = LeaveOneOut()
     measurements = {}
+    df = normalize_features(df)
     avg_acc, avg_auc = 0, 0
     for train_idx, test_idx in loo.split(df):
         X_train, X_test = df[train_idx], df[test_idx]
@@ -35,3 +37,8 @@ def load_model(model_type: str) -> Union[nn.Module, RandomForestClassifier, None
         raise ValueError('Invalid model_type as input')
     return model
 
+
+def normalize_features(df: pd.DataFrame) -> pd.DataFrame:
+    min_max = preprocessing.MinMaxScaler(feature_range=(0, 1))
+    df_normalized = min_max.fit_transform(df)
+    return df_normalized
