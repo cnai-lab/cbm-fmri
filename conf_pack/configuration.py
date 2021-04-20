@@ -11,3 +11,4 @@ tune_parameters = {'threshold':  np.arange(default_params.getfloat('min_thresh')
                                         default_params.getfloat('max_dens') + step, step),
                    }
 
+

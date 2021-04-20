@@ -6,6 +6,7 @@ import pandas as pd
 import os
 from pre_process import load_scans
 
+
 class GraphsDataset(Dataset):
 
     def __init__(self, root, transform=None, pre_transform=None, pre_filter=None):

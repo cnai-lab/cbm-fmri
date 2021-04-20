@@ -1,13 +1,11 @@
-import numpy as np
 from nilearn.input_data import NiftiSpheresMasker
 from nilearn.connectome import ConnectivityMeasure
-from typing import List, Callable, Union, Tuple, NoReturn
+from typing import List, Union, Tuple, NoReturn
 import networkx as nx
-import os
-from paths import *
+from conf_pack.paths import *
 import nilearn.datasets as datasets
 from copy import deepcopy
-from configuration import *
+from conf_pack.configuration import *
 
 
 def load_scans(scan_paths: List[str], data_type: str = 'correlation') -> \
@@ -44,14 +42,14 @@ def load_scans(scan_paths: List[str], data_type: str = 'correlation') -> \
 def load_saved_scans(names: List[str]) -> List[np.ndarray]:
     correlations = []
     for name in names:
-        path_to_load = os.path.join(SAVE_PATH, name)
+        path_to_load = os.path.join(DATA_PATH, name)
         correlations.append(np.load(f'{path_to_load}.npy'))
     return correlations
 
 
 def save_numpy_lst(names: List[str], correlations: List[np.ndarray]) -> NoReturn:
     for name, corr in zip(names, correlations):
-        path_to_save = os.path.join(SAVE_PATH, name)
+        path_to_save = os.path.join(DATA_PATH, name)
         np.save(f'{path_to_save}.npy', corr)
 
 
