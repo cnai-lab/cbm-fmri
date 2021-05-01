@@ -3,6 +3,7 @@ from nilearn.connectome import ConnectivityMeasure
 from typing import List, Union, Tuple, NoReturn
 import networkx as nx
 from conf_pack.paths import *
+from utils import *
 import nilearn.datasets as datasets
 from copy import deepcopy
 from conf_pack.configuration import *
@@ -15,20 +16,20 @@ def load_scans(scan_paths: List[str], data_type: str = 'correlation') -> \
     names = [os.path.basename(path) for path in scan_paths]
 
     if not default_params.getboolean('save_scans'):
-        return load_saved_scans(names)
+        return load_saved_scans(dir_path=get_data_path(), data_type=data_type, names=names)
 
     for path in scan_paths:
         time_series = path_to_time_series(path)
         time_series_lst.append(time_series)
 
-    # save_numpy_lst(names, time_series_lst)
+    save_numpy_lst(dir_path=get_save_path(), names=names, data_type=data_type, npy_to_save=time_series_lst)
 
     if data_type == 'time_series':
         return time_series_lst
 
     correlations = time_series_to_correlation(time_series_lst)
 
-    save_numpy_lst(names, correlations)
+    save_numpy_lst(dir_path=get_save_path(), names=names, data_type=data_type, npy_to_save=correlations)
 
     if data_type == 'correlation':
         return correlations
@@ -39,18 +40,24 @@ def load_scans(scan_paths: List[str], data_type: str = 'correlation') -> \
     raise ValueError('Data type should be one of the [correlation, time_series, both]')
 
 
-def load_saved_scans(names: List[str]) -> List[np.ndarray]:
-    correlations = []
+def load_saved_scans(dir_path, names: List[str], data_type: str) -> List[np.ndarray]:
+    res = []
     for name in names:
-        path_to_load = os.path.join(DATA_PATH, name)
-        correlations.append(np.load(f'{path_to_load}.npy'))
-    return correlations
+        corr_path = os.path.join(dir_path, data_type, f'{name[:6]}_correlation.npy')
+        time_series_path = os.path.join(dir_path, data_type, f'{name:6}_t_series.npy')
+        if data_type == 'correlation':
+            res.append(np.load(corr_path))
+        elif data_type == 'time_series':
+            res.append(np.load(time_series_path))
+        elif data_type == 'both':
+            res.append((np.load(corr_path), np.load(time_series_path)))
+    return res
 
 
-def save_numpy_lst(names: List[str], correlations: List[np.ndarray]) -> NoReturn:
-    for name, corr in zip(names, correlations):
-        path_to_save = os.path.join(DATA_PATH, name)
-        np.save(f'{path_to_save}.npy', corr)
+def save_numpy_lst(dir_path: str, names: List[str], data_type: str, npy_to_save: List[np.ndarray]) -> NoReturn:
+    for name, npy_file in zip(names, npy_to_save):
+        path_to_save = os.path.join(dir_path, data_type, name)
+        np.save(f'{path_to_save}.npy', npy_file)
 
 
 def path_to_time_series(path: str) -> np.ndarray:
@@ -88,6 +95,19 @@ def build_graphs_from_corr(filter_type, corr_lst: List[np.ndarray], param) -> Li
     return filter_edges(filter_type, graphs, param)
 
 
+def build_graphs_with_activations(scans_path: List[str], filter_type: str = 'density',
+                                  param: float = 0.01) -> List[nx.Graph]:
+    corr_lst, time_series_lst = load_scans(scans_path, 'both')
+    graphs = build_graphs_from_corr(filter_type, corr_lst, param)
+    for g, time_series in zip(graphs, time_series_lst):
+        add_node_features(g, time_series)
+    return graphs
+
+
+def add_node_features(g: nx.Graph, node_features: np.ndarray) -> nx.Graph:
+    return g
+
+
 def get_labels() -> List[str]:
     '''
 
@@ -111,8 +131,13 @@ def filter_edges(filter_type: str, graphs: List[nx.Graph], param) -> List[nx.Gra
 
 
 def filter_by_threshold(graph: nx.Graph, threshold: float) -> nx.Graph:
+    # g_copy = graph.copy()
+    # edges = g_copy.edges
+    # edges_to_remove = [edge for edge in edges if edges[edge]['weight'] < threshold]
+    # g_copy.remove_edges_from(edges_to_remove)
+    # return g_copy
     edges = graph.edges
-    amount_of_edges = len([edge for edge in edges if edges[edge]['weight'] < threshold])
+    amount_of_edges = len([edge for edge in edges if edges[edge]['weight'] >= threshold])
     return filter_by_amount(graph, amount_of_edges)
 
 

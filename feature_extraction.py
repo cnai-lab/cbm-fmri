@@ -2,7 +2,8 @@ import networkx as nx
 from typing import List, Callable, DefaultDict, Dict, NoReturn
 from collections import defaultdict
 import numpy as np
-from karateclub.graph_embedding import  Graph2Vec, FGSD
+from collections import ChainMap
+from karateclub.graph_embedding import Graph2Vec, FGSD
 from netlsd import heat, wave
 import os
 from utils import *
@@ -51,7 +52,6 @@ def embedding_features(graphs: List[nx.Graph], embedding_func: Callable) -> Defa
 
 
 def features_by_type(feat_type: str, graphs: List[nx.Graph], dim: int):
-
     def heat_embedding():
         return [heat(graph, normalized_laplacian=False, timescales=np.logspace(-2, 2, dim)) for graph in graphs]
 
@@ -72,36 +72,57 @@ def features_by_type(feat_type: str, graphs: List[nx.Graph], dim: int):
     return mapping_embed[feat_type]()
 
 
+def padding_by_zeros(f: List[Dict], dict_to_pad: Dict, padding_name, zeros_size: int) -> NoReturn:
+    max_size = max([len(list(global_feat.values())) for global_feat in f])
+    for i in range(max_size):
+        dict_to_pad[f'{padding_name}_{i}'] = [0] * zeros_size
+
+
 def features_by_values(graphs: List[nx.Graph], func_features: List[Callable]) -> DefaultDict:
     feat_as_dict = defaultdict(list)
     for func in tqdm(func_features):
+        global_feature_vals_lst = [func(g) for g in graphs]
+        padding_by_zeros(global_feature_vals_lst, feat_as_dict, func.__name__, len(graphs))
+
         old_time = datetime.datetime.now()
-        for g in graphs:
-            global_feature_vals = func(g)
+        for j, global_feature_vals in enumerate(global_feature_vals_lst):
             for i, val in enumerate(global_feature_vals.values()):
-                feat_as_dict[f'{func.__name__}_{i}'].append(val)
+                feat_as_dict[f'{func.__name__}_{i}'][j] = val
         # write_time_of_function(func.__name__, old_time)
-    keys_to_remove = [key for key in feat_as_dict.keys() if len(feat_as_dict[key]) < len(graphs)]
+    keys_to_remove = [key for key in feat_as_dict.keys() if len(feat_as_dict[key]) < len(graphs) / 2]
     for key in keys_to_remove:
         feat_as_dict.pop(key)
 
     return feat_as_dict
 
 
-    pass
+def measurement_for_unconnected_global(func: Callable) -> Callable:
+    def res_func(graph):
+        return np.average([func(graph.subgraph(comp)) for comp in nx.connected_components(graph)])
+    res_func.__name__ = func.__name__
+    return res_func
+
+
+def measurements_for_unconnected_local(func: Callable) -> Callable:
+    def res_func(graph):
+        res = {k: v for x in [func(graph.subgraph(comp)) for comp in nx.connected_components(graph)]
+                                  for k, v in x.items()}
+        return res
+    res_func.__name__ = func.__name__
+    return res_func
 
 
 def main_global_features(graphs: List[nx.Graph]) -> pd.DataFrame:
     # nx.number_weakly_connected_components nx.number_attracting_components - for directed, nx.number_strongly_connected_components,
     # nx.node_connectivity,# nx.graph_number_of_cliques,#nx.local_efficiency, # nx.sigma, nx.omega,
     # bipartite graph latapy_clustering  node_redundancy
-    # time running nx.current_flow_betweenness_centrality,
+    # time running nx.current_flow_betweenness_centrality, measurement_for_unconnected_global(nx.wiener_index)
 
-    global_funcs = [nx.density, nx.betweenness_centrality, nx.number_connected_components, nx.average_clustering,
+    global_funcs = [nx.density, nx.number_connected_components, nx.average_clustering,
                     nx.degree_assortativity_coefficient, nx.degree_pearson_correlation_coefficient,
-                    spectral_bipartivity,  nx.global_reaching_centrality,
-                    edge_connectivity, nx.diameter, nx.global_efficiency,
-                    nx.number_of_isolates, nx.overall_reciprocity, nx.wiener_index]
+                    spectral_bipartivity, nx.global_reaching_centrality,
+                    edge_connectivity, measurement_for_unconnected_global(nx.diameter), nx.global_efficiency,
+                    nx.number_of_isolates, nx.overall_reciprocity]
 
     global_feat = global_features(graphs, global_funcs)
     others = [nx.average_neighbor_degree, nx.average_degree_connectivity,
@@ -109,16 +130,14 @@ def main_global_features(graphs: List[nx.Graph]) -> pd.DataFrame:
 
     others_feat = features_by_values(graphs, others)
     local_features = [nx.clustering, nx.degree, nx.degree_centrality, nx.closeness_centrality,
-                      nx.betweenness_centrality, nx.eigenvector_centrality, nx.katz_centrality_numpy,
-                      nx.approximate_current_flow_betweenness_centrality, nx.communicability_betweenness_centrality,
-                      nx.harmonic_centrality, nx.load_centrality, nx.subgraph_centrality,
-                      nx.second_order_centrality, nx.triangles,
-                      nx.eccentricity, nx.pagerank_numpy]
+                      nx.betweenness_centrality, #jlambda g: nx.eigenvector_centrality(g, max_iter=1000),
+                      nx.katz_centrality_numpy, nx.communicability_betweenness_centrality,
+                      nx.harmonic_centrality, nx.load_centrality, nx.subgraph_centrality, nx.triangles,
+                      nx.pagerank_numpy, measurements_for_unconnected_local(nx.second_order_centrality),
+                      measurements_for_unconnected_local(nx.eccentricity)]
     res = {}
-
+    # unconnected nx.approximate_current_flow_betweenness_centrality, nx.second_order_centrality, nx.eccentricity,
     res.update(aggregate_features(graphs, local_features))
     res.update(global_feat)
     res.update(others_feat)
     return pd.DataFrame(res)
-
-

@@ -1,6 +1,7 @@
 from pre_process import build_graphs_from_corr, load_scans
 from feature_extraction import main_global_features
 from train import train_model
+import nilearn
 from utils import *
 from collections import defaultdict
 k = 100
@@ -10,6 +11,7 @@ def main():
 
     performances = defaultdict(list)
     names = [os.path.join(SCANS_DIR_BEFORE, name) for name in os.listdir(SCANS_DIR_BEFORE)]
+
     corr_lst = load_scans(names)
     filter_type = default_params.get('filter')
 
@@ -24,6 +26,10 @@ def main():
 
     save_results(performances)
 
+def fetch_data_example():
+    data = nilearn.datasets.fetch_adhd(n_subjects=40, data_dir='C:/Users/orsym/Documents/Data/ADHD')
+    return data
+
 def example():
 
     thresh = 0.4
@@ -35,4 +41,4 @@ def example():
 
 
 if __name__ == '__main__':
-    example()
+    data = fetch_data_example()

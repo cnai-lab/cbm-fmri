@@ -14,6 +14,7 @@ from sklearn.feature_selection import mutual_info_classif, SelectKBest
 def train_model(df: pd.DataFrame, y: np.ndarray, num_features: int) -> float:
     model = load_model('rf')
     loo = LeaveOneOut()
+    df = df.fillna(0)
     df = normalize_features(df)
     avg_acc = 0
 
@@ -35,7 +36,7 @@ def load_model(model_type: str) -> Union[nn.Module, RandomForestClassifier, None
     if model_type == 'deep':
         model = Net()
     elif model_type == 'rf':
-        model = RandomForestClassifier()
+        model = RandomForestClassifier(n_estimators=300)
     else:
         raise ValueError('Invalid model_type as input')
     return model
@@ -49,6 +50,6 @@ def select_features(x_train: pd.DataFrame, y_true: np.ndarray, num_features: int
 
 
 def normalize_features(df: pd.DataFrame) -> pd.DataFrame:
-    min_max = preprocessing.MinMaxScaler(feature_range=(0, 1))
-    df_normalized = min_max.fit_transform(df)
-    return df_normalized
+    min_max = preprocessing.MinMaxScaler()
+    df[df.columns] = min_max.fit_transform(df)
+    return df
