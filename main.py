@@ -10,7 +10,8 @@ k = 100
 def main():
 
     performances = defaultdict(list)
-    names = [os.path.join(SCANS_DIR_BEFORE, name) for name in os.listdir(SCANS_DIR_BEFORE)]
+    data_path = os.path.join(get_data_path(), 'nifti')
+    names = [os.path.join(data_path, name) for name in os.listdir(data_path)]
 
     corr_lst = load_scans(names)
     filter_type = default_params.get('filter')
@@ -19,7 +20,7 @@ def main():
         graphs = build_graphs_from_corr(corr_lst=corr_lst, filter_type=filter_type, param=thresh)
         features = main_global_features(graphs)
         labels = get_y_true()
-
+        print(thresh)
         for feat_num in range(default_params.getint('min_features'), default_params.getint('max_features')):
             acc = train_model(features, labels, feat_num)
             performances[(thresh, feat_num)].append(acc)
@@ -41,4 +42,5 @@ def example():
 
 
 if __name__ == '__main__':
-    data = fetch_data_example()
+    # data = fetch_data_example()
+    main()

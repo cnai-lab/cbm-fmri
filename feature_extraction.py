@@ -3,6 +3,7 @@ from typing import List, Callable, DefaultDict, Dict, NoReturn
 from collections import defaultdict
 import numpy as np
 from collections import ChainMap
+import torch
 from karateclub.graph_embedding import Graph2Vec, FGSD
 from netlsd import heat, wave
 import os
@@ -89,9 +90,9 @@ def features_by_values(graphs: List[nx.Graph], func_features: List[Callable]) ->
             for i, val in enumerate(global_feature_vals.values()):
                 feat_as_dict[f'{func.__name__}_{i}'][j] = val
         # write_time_of_function(func.__name__, old_time)
-    keys_to_remove = [key for key in feat_as_dict.keys() if len(feat_as_dict[key]) < len(graphs) / 2]
-    for key in keys_to_remove:
-        feat_as_dict.pop(key)
+    # keys_to_remove = [key for key in feat_as_dict.keys() if len(feat_as_dict[key]) < len(graphs) / 2]
+    # for key in keys_to_remove:
+    #     feat_as_dict.pop(key)
 
     return feat_as_dict
 
@@ -125,12 +126,17 @@ def main_global_features(graphs: List[nx.Graph]) -> pd.DataFrame:
                     nx.number_of_isolates, nx.overall_reciprocity]
 
     global_feat = global_features(graphs, global_funcs)
+
+    def rich_club_func(graph):
+        return nx.rich_club_coefficient(graph, normalized=False)
+    rich_club_func.__name__ = nx.rich_club_coefficient.__name__
+
     others = [nx.average_neighbor_degree, nx.average_degree_connectivity,
-              lambda g: nx.rich_club_coefficient(g, normalized=False)]
+              rich_club_func]
 
     others_feat = features_by_values(graphs, others)
     local_features = [nx.clustering, nx.degree, nx.degree_centrality, nx.closeness_centrality,
-                      nx.betweenness_centrality, #jlambda g: nx.eigenvector_centrality(g, max_iter=1000),
+                      nx.betweenness_centrality, #lambda g: nx.eigenvector_centrality(g, max_iter=1000),
                       nx.katz_centrality_numpy, nx.communicability_betweenness_centrality,
                       nx.harmonic_centrality, nx.load_centrality, nx.subgraph_centrality, nx.triangles,
                       nx.pagerank_numpy, measurements_for_unconnected_local(nx.second_order_centrality),

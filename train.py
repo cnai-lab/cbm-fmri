@@ -10,6 +10,8 @@ from torch import nn
 from model import Net
 from sklearn.feature_selection import mutual_info_classif, SelectKBest
 
+from utils import write_selected_features
+
 
 def train_model(df: pd.DataFrame, y: np.ndarray, num_features: int) -> float:
     model = load_model('rf')
@@ -23,12 +25,13 @@ def train_model(df: pd.DataFrame, y: np.ndarray, num_features: int) -> float:
         X_train, X_test = df.iloc[train_idx], df.iloc[test_idx]
         y_train, y_test = y[train_idx], y[test_idx]
         feat_names = select_features(X_train, y_train, num_features)
+        write_selected_features(feat_names)
         X_train, X_test = X_train[feat_names], X_test[feat_names]
         model.fit(X_train, y_train)
         avg_acc += accuracy_score(model.predict(X_test), y_test)
 
     avg_acc /= len(y)
-
+    print(avg_acc)
     return avg_acc
 
 

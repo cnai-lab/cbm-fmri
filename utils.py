@@ -19,13 +19,17 @@ def write_time_of_function(func_name: str, old_time: datetime.datetime) -> NoRet
 
 
 def write_selected_features(feature_names: List[str]) -> NoReturn:
-    df = {}
+    df = defaultdict(list)
     full_path = os.path.join(get_results_path(), 'selected_features.csv')
     if os.path.exists(full_path):
-        df = pd.read_csv(full_path).todict(orient='list')
+        df = pd.read_csv(full_path).to_dict(orient='list')
     for feature in feature_names:
-        df[feature] = [df.get(feature, 1)]
-    df.to_csv(full_path, index=False)
+        if feature in list(df.keys()):
+            df[feature] = [df[feature][0] + 1]
+        else:
+            df[feature] = [1]
+
+    pd.DataFrame(df).to_csv(full_path, index=False)
 
 
 def get_y_true() -> np.ndarray:
@@ -43,7 +47,7 @@ def get_save_path() -> str:
 def get_data_path() -> str:
     data_path_mapping_by_proj = {'stroke': SCANS_DIR_BEFORE, 'adhd': ADHD_DATA_PATH}
     project_type = default_params.get('project')
-    return os.path.join(data_path_mapping_by_proj[project_type], 'nifti')
+    return data_path_mapping_by_proj[project_type]
 
 
 def get_meta_data() -> pd.DataFrame:
@@ -69,3 +73,7 @@ def save_results(perf: DefaultDict) -> NoReturn:
         res['number of features'].append(num_features)
         res['Accuracy'].append(acc)
     pd.DataFrame(res).to_csv(os.path.join(get_results_path(), 'results.csv'))
+
+# if __name__ == '__main__':
+#     d_type = 'correlation'
+#     for file in os.listdir(os.path.join(get_data_path(),    )

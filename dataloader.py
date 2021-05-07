@@ -3,7 +3,11 @@ import networkx as nx
 from typing import List, Tuple
 from torch_geometric.utils import from_networkx
 import pandas as pd
+from model import load_model
+from utils import get_data_path
+from conf_pack.configuration import *
 import os
+from conf_pack.paths import *
 from pre_process import load_scans, build_graphs_from_corr
 
 
@@ -22,15 +26,15 @@ class GraphsDataset(InMemoryDataset):
     def len(self):
         return len(self.csv)
 
-    def get(self, idx: int) -> Tuple[Data, int]:
-        full_path = os.path.join(self.root, f'{self.filenames[idx]}.nii')
+    def get(self, idx: int) -> Tuple[Data, int, str]:
+        full_path = os.path.join(self.root, 'nifti', f'{self.filenames[idx]}.nii')
         data_lst = load_scans([full_path], 'both')
-        activations = data_lst[0][0].swapaxes(0, 1)
-        correlation = data_lst[1][0]
+        activations = data_lst[0][1].swapaxes(0, 1)
+        correlation = data_lst[0][0]
         graph = build_graphs_from_corr('density', [correlation], 0.01)[0]
         nx.set_node_attributes(graph, dict(zip(range(len(activations)), activations)), 'activations')
         # Todo: understand why the label return is int type 64 and not int.
-        return from_networkx(graph), int(self.labels[idx])
+        return from_networkx(graph), int(self.labels[idx]), self.filenames[idx]
 
 
 def nx_lst_to_dl(graphs: List[nx.Graph]) -> DataLoader:
@@ -43,7 +47,9 @@ def nx_lst_to_dl(graphs: List[nx.Graph]) -> DataLoader:
 
 
 if __name__ == '__main__':
-    dataset = GraphsDataset(root=path)
-    dl = DataLoader(dataset)
-    for graph, label in dl:
-        print(label)
+    dataset = GraphsDataset(root=get_data_path())
+    model = load_model(num_feat=218, num_classes=2)
+    dl = DataLoader(dataset, batch_size=default_params.getint('batch_size'))
+    for graph, label, filename in dl:
+        model(graph)
+        print(f'label of {filename} is {label}')
