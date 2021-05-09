@@ -18,18 +18,29 @@ def write_time_of_function(func_name: str, old_time: datetime.datetime) -> NoRet
     df.to_csv(name_file, index=False)
 
 
-def write_selected_features(feature_names: List[str]) -> NoReturn:
+def write_selected_features(feature_names: List[str], info_gain: List[float]) -> NoReturn:
     df = defaultdict(list)
+
     full_path = os.path.join(get_results_path(), 'selected_features.csv')
     if os.path.exists(full_path):
         df = pd.read_csv(full_path).to_dict(orient='list')
-    for feature in feature_names:
-        if feature in list(df.keys()):
-            df[feature] = [df[feature][0] + 1]
-        else:
-            df[feature] = [1]
 
+    for feature, info_feature in zip(feature_names, info_gain):
+        if feature in df['feature_names']:
+            idx = df['feature_names'].index(feature)
+            df['number_of_times_chosen'][idx] = df['number_of_times_chosen'][idx] + 1
+            df['summed_inf_gain'][idx] = df['summed_inf_gain'][idx] + info_feature
+    #     if feature in list(df.keys()):
+    #         df[feature] = [df[feature][0] + 1]
+        else:
+            df['feature_names'].append(feature)
+            df['number_of_times_chosen'].append(1)
+            df['summed_inf_gain'].append(info_feature)
+    #         df[feature] = [1]
+
+    # df = rows_to_cols(df)
     pd.DataFrame(df).to_csv(full_path, index=False)
+
 
 
 def get_y_true() -> np.ndarray:
