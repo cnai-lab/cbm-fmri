@@ -11,17 +11,17 @@ from torch import nn
 from model import Net
 from sklearn.feature_selection import mutual_info_classif, SelectKBest
 
-from utils import write_selected_features
+from utils import write_selected_features, load_graphs_features
 
 
-def train_model(df: pd.DataFrame, y: np.ndarray, num_features: int) -> float:
-    model = load_model('rf')
+def train_model(df: pd.DataFrame, y: np.ndarray, num_features: int) -> Tuple[float, RandomForestClassifier, List[str]]:
     loo = LeaveOneOut()
     df = df.fillna(0)
     df = normalize_features(df)
     avg_acc = 0
 
     for train_idx, test_idx in loo.split(df):
+        model = load_model('rf')
 
         X_train, X_test = df.iloc[train_idx], df.iloc[test_idx]
         y_train, y_test = y[train_idx], y[test_idx]
@@ -31,11 +31,25 @@ def train_model(df: pd.DataFrame, y: np.ndarray, num_features: int) -> float:
         model.fit(X_train, y_train)
         avg_acc += accuracy_score(model.predict(X_test), y_test)
 
+    model = load_model('rf')
+    feat_names, feat_values = select_features(df, y, num_features)
+    model.fit(df[feat_names], y)
+
     avg_acc /= len(y)
     print(avg_acc)
-    return avg_acc
+    return avg_acc, model, feat_names
 
 
+def predict_by_criterions(model, col_names: List[str], filter_type: str, thresh: float, idx: np.ndarray,
+                          y: np.ndarray) -> float:
+    df = load_graphs_features(filter_type, thresh)
+    df = df[col_names]
+    df = df.fillna(0)
+    df = normalize_features(df)
+    df_relevant_features = df.iloc[idx]
+    y_relevant = y[idx]
+    acc = accuracy_score(model.predict(df_relevant_features), y_relevant)
+    return acc
 
 
 def load_model(model_type: str) -> Union[nn.Module, RandomForestClassifier, None]:

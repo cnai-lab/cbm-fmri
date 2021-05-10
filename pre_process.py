@@ -1,7 +1,9 @@
+import numpy as np
 from nilearn.input_data import NiftiSpheresMasker
 from nilearn.connectome import ConnectivityMeasure
 from typing import List, Union, Tuple, NoReturn
 import networkx as nx
+from feature_extraction import main_global_features
 from conf_pack.paths import *
 from utils import *
 import nilearn.datasets as datasets
@@ -102,6 +104,14 @@ def build_graphs_with_activations(scans_path: List[str], filter_type: str = 'den
     for g, time_series in zip(graphs, time_series_lst):
         add_node_features(g, time_series)
     return graphs
+
+
+def create_graphs_features_df(filter_type: str, corr_lst: List[np.ndarray], thresholds: Union[List[float], np.ndarray] ):
+    os.makedirs(f'Graphs_pickle/{filter_type}', exist_ok=True)
+    for thresh in thresholds:
+        graphs = build_graphs_from_corr(filter_type=filter_type, corr_lst=corr_lst, param=thresh)
+        features_df = main_global_features(graphs)
+        features_df.to_pickle(os.path.join('Graphs_pickle', filter_type, f'graph_{thresh}.pkl'))
 
 
 def add_node_features(g: nx.Graph, node_features: np.ndarray) -> nx.Graph:
