@@ -1,5 +1,7 @@
 import torch.nn as nn
 import torch
+
+
 class ConvAutoEncoder(nn.Module):
     def __init__(self):
         super(ConvAutoEncoder).__init__()

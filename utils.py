@@ -86,6 +86,15 @@ def save_results(perf: DefaultDict) -> NoReturn:
         res['Accuracy'].append(acc)
     pd.DataFrame(res).to_csv(os.path.join(get_results_path(), 'results.csv'))
 
-# if __name__ == '__main__':
+
+def get_names() -> List[str]:
+    path = get_data_path()
+    file = open(os.path.join(path, 'names.txt'))
+    names = file.read().split('\n')
+    return names
+
+
+if __name__ == '__main__':
+    print(get_names())
 #     d_type = 'correlation'
 #     for file in os.listdir(os.path.join(get_data_path(),    )

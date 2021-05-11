@@ -1,6 +1,6 @@
-from sklearn.model_selection import train_test_split, LeaveOneOut
+from sklearn.model_selection import LeaveOneOut
 from sklearn.ensemble import RandomForestClassifier
-from typing import Dict, Union, Tuple, DefaultDict
+from typing import Union, Tuple
 import pandas as pd
 from sklearn.metrics import accuracy_score
 from typing import List
@@ -8,9 +8,9 @@ import numpy as np
 from sklearn import preprocessing
 from torch import nn
 
-from model import Net
+from Deep.model import Net
 from sklearn.feature_selection import mutual_info_classif, SelectKBest
-
+from multiprocessing import Process, Pool
 from utils import write_selected_features, load_graphs_features
 
 
@@ -19,17 +19,15 @@ def train_model(df: pd.DataFrame, y: np.ndarray, num_features: int) -> Tuple[flo
     df = df.fillna(0)
     df = normalize_features(df)
     avg_acc = 0
+    args_lst = []
 
     for train_idx, test_idx in loo.split(df):
-        model = load_model('rf')
-
         X_train, X_test = df.iloc[train_idx], df.iloc[test_idx]
         y_train, y_test = y[train_idx], y[test_idx]
-        feat_names, feat_values = select_features(X_train, y_train, num_features)
-        write_selected_features(feat_names, feat_values)
-        X_train, X_test = X_train[feat_names], X_test[feat_names]
-        model.fit(X_train, y_train)
-        avg_acc += accuracy_score(model.predict(X_test), y_test)
+        args_lst.append((X_train, y_train, X_test, y_test, num_features))
+    with Pool(5) as p:
+        res = p.starmap(train_model_iteration, args_lst)
+    avg_acc = sum(res)
 
     model = load_model('rf')
     feat_names, feat_values = select_features(df, y, num_features)
@@ -38,6 +36,20 @@ def train_model(df: pd.DataFrame, y: np.ndarray, num_features: int) -> Tuple[flo
     avg_acc /= len(y)
     print(avg_acc)
     return avg_acc, model, feat_names
+
+
+def train_model_iteration(X_train: pd.DataFrame, y_train: np.ndarray,
+                          X_test: pd.DataFrame, y_test: np.ndarray, num_features: int) -> float:
+
+    model = load_model('rf')
+
+    feat_names, feat_values = select_features(X_train, y_train, num_features)
+    # write_selected_features(feat_names, feat_values)
+    X_train, X_test = X_train[feat_names], X_test[feat_names]
+    model.fit(X_train, y_train)
+    return accuracy_score(model.predict(X_test), y_test)
+
+
 
 
 def predict_by_criterions(model, col_names: List[str], filter_type: str, thresh: float, idx: np.ndarray,

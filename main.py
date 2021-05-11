@@ -6,6 +6,7 @@ from feature_extraction import main_global_features
 from train import train_model, predict_by_criterions
 import nilearn
 from utils import *
+
 from collections import defaultdict
 k = 100
 
@@ -14,14 +15,15 @@ def main():
 
     performances = defaultdict(list)
     data_path = os.path.join(get_data_path(), 'nifti')
-    names = [os.path.join(data_path, name) for name in os.listdir(data_path)]
+    names = [os.path.join(data_path, name) for name in get_names()]
 
-    corr_lst = load_scans(names)
+    # corr_lst = load_scans(names)
     filter_type = default_params.get('filter')
 
     for thresh in tune_parameters[filter_type]:
-        graphs = build_graphs_from_corr(corr_lst=corr_lst, filter_type=filter_type, param=thresh)
-        features = main_global_features(graphs)
+        # graphs = build_graphs_from_corr(corr_lst=corr_lst, filter_type=filter_type, param=thresh)
+        # features = main_global_features(graphs)
+        features = load_graphs_features(filter_type, thresh)
         labels = get_y_true()
         print(thresh)
         for feat_num in range(default_params.getint('min_features'), default_params.getint('max_features')):
@@ -40,8 +42,9 @@ def hyper_parameter(hyper_parameters: dict):
     y = get_y_true()
     avg_acc = 0
 
+    # data_path = os.path.join(get_data_path(), 'nifti')
     data_path = os.path.join(get_data_path(), 'nifti')
-    names = [os.path.join(data_path, name) for name in os.listdir(data_path)]
+    names = [os.path.join(data_path, name) for name in get_names()]
     corr_lst = load_scans(names)
 
     loo = LeaveOneOut()
@@ -49,7 +52,7 @@ def hyper_parameter(hyper_parameters: dict):
 
     for train_idx, test_idx in loo.split(corr_lst):
 
-        best_thresh, best_acc, best_num, best_model = 0, 0, 0, None
+        best_thresh, best_acc, best_num, best_model, feat_names_best = 0, 0, 0, None, None
 
         for criteria_thresh in hyper_parameters['threshold']:
 
@@ -62,22 +65,25 @@ def hyper_parameter(hyper_parameters: dict):
                 acc, model, feat_names = train_model(X_train, y_train, num_features)
 
                 if acc > best_acc:
+                    best_acc = acc
+                    feat_names_best = feat_names
                     best_thresh, best_num, best_model = criteria_thresh, num_features, model
 
         avg_acc += predict_by_criterions(model=best_model, filter_type=filter_type, thresh=best_thresh, idx=test_idx,
-                                         y=y, col_names=feat_names)
+                                         y=y, col_names=feat_names_best)
 
         counts_table[(best_thresh, best_num)] = counts_table[(best_thresh, best_num)] + 1
     avg_acc /= len(y)
-    with open(os.path.join(get_results_path(), 'Results.txt')) as f:
-        f.write(f'The accuracy of this experiment is {avg_acc}\n')
     count_table_refactored = defaultdict(list)
     for key, val in counts_table.items():
         count_table_refactored['params'].append(key)
         count_table_refactored['num_counts'].append(val)
-    pd.DataFrame(count_table_refactored).to_csv(os.path.join(get_results_path()), 'count_table.csv')
+    pd.DataFrame(count_table_refactored).to_csv(os.path.join(get_results_path(), 'count_table.csv'))
 
-         # pd.DataFrame(performances).to_csv(os.path.join(get_results_path(), 'hyper_parameters.csv'), index=False)
+    with open(os.path.join(get_results_path(), 'Results.txt'), 'a') as f:
+        f.write(f'The accuracy of this experiment is {avg_acc}\n')
+
+        # pd.DataFrame(performances).to_csv(os.path.join(get_results_path(), 'hyper_parameters.csv'), index=False)
     return performances
 
 
@@ -101,6 +107,7 @@ def graph_pre_process():
 
 
 if __name__ == '__main__':
+    # main()
     # data = fetch_data_example()
-    hyper_parameter({'threshold': [0.43], 'num_features': [1]})
-    # graph_pre_process()
+    hyper_parameter({'threshold': [0.43], 'num_features': [2]})
+    graph_pre_process()
