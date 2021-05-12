@@ -45,7 +45,7 @@ def hyper_parameter(hyper_parameters: dict):
     # data_path = os.path.join(get_data_path(), 'nifti')
     data_path = os.path.join(get_data_path(), 'nifti')
     names = [os.path.join(data_path, name) for name in get_names()]
-    corr_lst = load_scans(names)
+    corr_lst = load_scans(names, get_data_path())
 
     loo = LeaveOneOut()
     filter_type = default_params.get('filter')
@@ -97,10 +97,11 @@ def example():
 
     print()
 
+
 def graph_pre_process():
     data_path = os.path.join(get_data_path(), 'nifti')
     names = [os.path.join(data_path, name) for name in os.listdir(data_path)]
-    corr_lst = load_scans(names)
+    corr_lst = load_scans(names, get_data_path())
 
     create_graphs_features_df(corr_lst=corr_lst, filter_type='threshold', thresholds=np.arange(start=0.4, stop=0.7,
                                                                                    step=0.01))

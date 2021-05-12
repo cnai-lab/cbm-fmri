@@ -7,7 +7,6 @@ import torch
 from karateclub.graph_embedding import Graph2Vec, FGSD
 from netlsd import heat, wave
 import os
-from utils import *
 from networkx.algorithms.bipartite import *
 from networkx.algorithms import *
 import datetime

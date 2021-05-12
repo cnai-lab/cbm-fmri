@@ -1,8 +1,9 @@
 from typing import NoReturn, DefaultDict
 import datetime
 import pandas as pd
+import numpy as np
 from conf_pack.paths import *
-from conf_pack.configuration import *
+from conf_pack.configuration import default_params, c
 from collections import defaultdict
 from typing import List
 
@@ -91,7 +92,7 @@ def get_names() -> List[str]:
     path = get_data_path()
     file = open(os.path.join(path, 'names.txt'))
     names = file.read().split('\n')
-    return names
+    return names[:-1]
 
 
 if __name__ == '__main__':

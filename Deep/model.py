@@ -1,4 +1,3 @@
-# from sklearn.ensemble import RandomForestClassifier
 from torch import nn
 from torch_geometric.nn import GCNConv
 from torch_geometric.data.data import Data
@@ -18,7 +17,8 @@ class Net(nn.Module):
         x = F.relu(x)
         x = F.dropout(x, training=self.training)
         x = self.conv2(x, edge_idx)
-        return F.log_softmax(x, dim=1)
+        return x
+        # return F.log_softmax(x, dim=1)
 
 
 def load_model(num_feat: int, num_classes: int) -> nn.Module:

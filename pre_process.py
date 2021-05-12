@@ -4,34 +4,33 @@ from nilearn.connectome import ConnectivityMeasure
 from typing import List, Union, Tuple, NoReturn
 import networkx as nx
 from feature_extraction import main_global_features
-from conf_pack.paths import *
-from utils import *
+# from utils import *
 import nilearn.datasets as datasets
 from copy import deepcopy
 from conf_pack.configuration import *
 
 
-def load_scans(scan_paths: List[str], data_type: str = 'correlation') -> \
+def load_scans(scan_paths: List[str], dir_path: str, data_type: str = 'correlation') -> \
         Union[List[np.ndarray], Tuple[List[np.ndarray], List[np.ndarray]]]:
 
     time_series_lst, corr_lst = [], []
     names = [os.path.basename(path) for path in scan_paths]
 
     if not default_params.getboolean('save_scans'):
-        return load_saved_scans(dir_path=get_data_path(), data_type=data_type, names=names)
+        return load_saved_scans(dir_path=dir_path, data_type=data_type, names=names)
 
     for path in scan_paths:
         time_series = path_to_time_series(path)
         time_series_lst.append(time_series)
 
-    save_numpy_lst(dir_path=get_data_path(), names=names, data_type='time_series', npy_to_save=time_series_lst)
+    save_numpy_lst(dir_path=dir_path, names=names, data_type='time_series', npy_to_save=time_series_lst)
 
     if data_type == 'time_series':
         return time_series_lst
 
     correlations = time_series_to_correlation(time_series_lst)
 
-    save_numpy_lst(dir_path=get_data_path(), names=names, data_type='correlation', npy_to_save=correlations)
+    save_numpy_lst(dir_path=dir_path, names=names, data_type='correlation', npy_to_save=correlations)
 
     if data_type == 'correlation':
         return correlations
