@@ -8,4 +8,4 @@ def load_criteria():
 
 
 def load_optimizer(model: nn.Module):
-    return Adam(model.parameters())
+    return Adam(model.parameters(), lr=0.01)

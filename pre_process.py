@@ -8,7 +8,7 @@ from feature_extraction import main_global_features
 import nilearn.datasets as datasets
 from copy import deepcopy
 from conf_pack.configuration import *
-
+# dataloader ->
 
 def load_scans(scan_paths: List[str], dir_path: str, data_type: str = 'correlation') -> \
         Union[List[np.ndarray], Tuple[List[np.ndarray], List[np.ndarray]]]:

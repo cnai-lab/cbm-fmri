@@ -1,9 +1,9 @@
 from configparser import ConfigParser
-from conf_pack.paths import *
 import numpy as np
+import os
 
 c = ConfigParser()
-c.read('conf_pack/config.ini')
+c.read('../conf_pack/config.ini')
 default_params = c['Default Params']
 step = 0.01
 tune_parameters = {'threshold':  np.arange(default_params.getfloat('min_thresh'),

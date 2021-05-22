@@ -1,6 +1,7 @@
 import pandas as pd
 from sklearn.model_selection import LeaveOneOut
 
+from conf_pack.configuration import tune_parameters
 from pre_process import build_graphs_from_corr, load_scans, create_graphs_features_df
 from feature_extraction import main_global_features
 from train import train_model, predict_by_criterions
@@ -38,11 +39,11 @@ def fetch_data_example():
 
 
 def hyper_parameter(hyper_parameters: dict):
+    # Todo: Another table like count table only for features. Each feature is a column. 
     performances, counts_table = defaultdict(list), defaultdict(int)
     y = get_y_true()
     avg_acc = 0
 
-    # data_path = os.path.join(get_data_path(), 'nifti')
     data_path = os.path.join(get_data_path(), 'nifti')
     names = [os.path.join(data_path, name) for name in get_names()]
     corr_lst = load_scans(names, get_data_path())
@@ -73,11 +74,13 @@ def hyper_parameter(hyper_parameters: dict):
                                          y=y, col_names=feat_names_best)
 
         counts_table[(best_thresh, best_num)] = counts_table[(best_thresh, best_num)] + 1
+        counts_table[(best_thresh, best_num)] = counts_table[(best_thresh, best_num)] + 1
     avg_acc /= len(y)
     count_table_refactored = defaultdict(list)
     for key, val in counts_table.items():
         count_table_refactored['params'].append(key)
         count_table_refactored['num_counts'].append(val)
+        # count_table_refactored['features'].append(feat_names)
     pd.DataFrame(count_table_refactored).to_csv(os.path.join(get_results_path(), 'count_table.csv'))
 
     with open(os.path.join(get_results_path(), 'Results.txt'), 'a') as f:

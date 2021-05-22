@@ -1,12 +1,14 @@
 from torch_geometric.data import Data, Dataset, DataLoader, InMemoryDataset
 import networkx as nx
 from typing import List, Tuple
+import numpy as np
 from torch_geometric.utils import from_networkx
 import pandas as pd
 # from model import load_model
 # from utils import get_data_path
 # from conf_pack.configuration import *
 # import os
+from Deep.feature_extraction_deep import time_series_to_features, time_series_to_images, images_to_feature_vector
 from conf_pack.paths import *
 from pre_process import load_scans, build_graphs_from_corr
 
@@ -32,7 +34,14 @@ class GraphsDataset(InMemoryDataset):
         activations = data_lst[0][1].swapaxes(0, 1)
         correlation = data_lst[0][0]
         graph = build_graphs_from_corr('density', [correlation], 0.01)[0]
-        nx.set_node_attributes(graph, dict(zip(range(len(activations)), activations)), 'activations')
+
+        features_from_activations = time_series_to_images(activations)
+        features = images_to_feature_vector(features_from_activations).detach().numpy()
+
+        # features_from_activations = time_series_to_features(activations)
+        features_to_nodes = dict(zip(range(len(features)),
+                                                       features))
+        nx.set_node_attributes(graph, features_to_nodes, 'activations')
         # Todo: understand why the label return is int type 64 and not int.
         return from_networkx(graph), int(self.labels[idx]), self.filenames[idx]
 

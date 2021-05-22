@@ -1,6 +1,6 @@
 import torch.nn as nn
 import torch
-
+import sktime
 
 class ConvAutoEncoder(nn.Module):
     def __init__(self):
