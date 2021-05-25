@@ -4,7 +4,7 @@ from sklearn.model_selection import LeaveOneOut
 from conf_pack.configuration import tune_parameters
 from pre_process import build_graphs_from_corr, load_scans, create_graphs_features_df
 from feature_extraction import main_global_features
-from train import train_model, predict_by_criterions
+from train import train_model, predict_by_criterions, info_gain_all_features
 import nilearn
 from utils import *
 
@@ -39,8 +39,8 @@ def fetch_data_example():
 
 
 def hyper_parameter(hyper_parameters: dict):
-    # Todo: Another table like count table only for features. Each feature is a column. 
-    performances, counts_table = defaultdict(list), defaultdict(int)
+    # Todo: Another table like count table only for features. Each feature is a column.
+    performances, counts_table, features_table = defaultdict(list), defaultdict(int), defaultdict(int)
     y = get_y_true()
     avg_acc = 0
 
@@ -58,6 +58,7 @@ def hyper_parameter(hyper_parameters: dict):
         for criteria_thresh in hyper_parameters['threshold']:
 
             df = load_graphs_features(filter_type, criteria_thresh)
+            info_gain_all_features(df, y, threshold=criteria_thresh)
             X_train, X_test = df.iloc[train_idx], df.iloc[test_idx]
             y_train, y_test = y[train_idx], y[test_idx]
 
@@ -74,14 +75,21 @@ def hyper_parameter(hyper_parameters: dict):
                                          y=y, col_names=feat_names_best)
 
         counts_table[(best_thresh, best_num)] = counts_table[(best_thresh, best_num)] + 1
-        counts_table[(best_thresh, best_num)] = counts_table[(best_thresh, best_num)] + 1
+        for feat in feat_names_best:
+            features_table[feat] = features_table[feat] + 1
     avg_acc /= len(y)
     count_table_refactored = defaultdict(list)
+    feat_table_refactored = defaultdict(list)
     for key, val in counts_table.items():
         count_table_refactored['params'].append(key)
         count_table_refactored['num_counts'].append(val)
-        # count_table_refactored['features'].append(feat_names)
-    pd.DataFrame(count_table_refactored).to_csv(os.path.join(get_results_path(), 'count_table.csv'))
+
+    for key, val in features_table.items():
+        feat_table_refactored['feature'].append(key)
+        feat_table_refactored['num_counts'].append(val)
+
+    pd.DataFrame(count_table_refactored).to_csv(os.path.join(get_results_path(), 'count_table.csv'), index=False)
+    pd.DataFrame(feat_table_refactored).to_csv(os.path.join(get_results_path(), 'feat_count_table.csv'), index=False)
 
     with open(os.path.join(get_results_path(), 'Results.txt'), 'a') as f:
         f.write(f'The accuracy of this experiment is {avg_acc}\n')

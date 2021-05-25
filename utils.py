@@ -44,7 +44,6 @@ def write_selected_features(feature_names: List[str], info_gain: List[float]) ->
     pd.DataFrame(df).to_csv(full_path, index=False)
 
 
-
 def get_y_true() -> np.ndarray:
     df = get_meta_data()
     df.sort_values(by=['Subject'], inplace=True)
