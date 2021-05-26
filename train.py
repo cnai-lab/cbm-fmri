@@ -98,7 +98,7 @@ def info_gain_all_features(df: pd.DataFrame, y_true: np.ndarray, threshold: floa
     values = mutual_info_classif(X=df.fillna(0), y=y_true)
     for col, val in zip(df.columns, values):
         df_res[col].append(val)
-        df_res['threshold'].append(threshold)
+    df_res['threshold'].append(threshold)
     full_path = os.path.join(get_results_path(), 'all_features.csv')
     if os.path.exists(full_path):
         pd.DataFrame(df_res, index=df_res['threshold']).to_csv(full_path, header=False, mode='a')

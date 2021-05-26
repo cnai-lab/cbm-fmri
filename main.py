@@ -9,6 +9,9 @@ import nilearn
 from utils import *
 
 from collections import defaultdict
+
+from visualization import build_features_for_scatters, scatter_plot
+
 k = 100
 
 
@@ -75,21 +78,20 @@ def hyper_parameter(hyper_parameters: dict):
                                          y=y, col_names=feat_names_best)
 
         counts_table[(best_thresh, best_num)] = counts_table[(best_thresh, best_num)] + 1
+
         for feat in feat_names_best:
             features_table[feat] = features_table[feat] + 1
+
     avg_acc /= len(y)
-    count_table_refactored = defaultdict(list)
-    feat_table_refactored = defaultdict(list)
-    for key, val in counts_table.items():
-        count_table_refactored['params'].append(key)
-        count_table_refactored['num_counts'].append(val)
 
-    for key, val in features_table.items():
-        feat_table_refactored['feature'].append(key)
-        feat_table_refactored['num_counts'].append(val)
+    counts_table_refactored = dict_to_df(counts_table, 'params', 'num_counts', 'count_table.csv')
+    feat_table_refactored = dict_to_df(features_table, 'feature', 'num_counts', 'feat_count_table.csv')
+    feat_table_refactored.sort_values(by='num_counts', inplace=True)
 
-    pd.DataFrame(count_table_refactored).to_csv(os.path.join(get_results_path(), 'count_table.csv'), index=False)
-    pd.DataFrame(feat_table_refactored).to_csv(os.path.join(get_results_path(), 'feat_count_table.csv'), index=False)
+    for i in range(0, 1):
+        feat_name_to_plot = feat_table_refactored.iloc[i]['feature']
+        scatter_plot(build_features_for_scatters(filter_type, hyper_parameters['threshold'],
+                                                 feat_name_to_plot, y), feat_name_to_plot)
 
     with open(os.path.join(get_results_path(), 'Results.txt'), 'a') as f:
         f.write(f'The accuracy of this experiment is {avg_acc}\n')
@@ -122,4 +124,4 @@ if __name__ == '__main__':
     # main()
     # data = fetch_data_example()
     hyper_parameter({'threshold': [0.43], 'num_features': [2]})
-    graph_pre_process()
+    # graph_pre_process()

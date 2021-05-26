@@ -19,6 +19,16 @@ def write_time_of_function(func_name: str, old_time: datetime.datetime) -> NoRet
     df.to_csv(name_file, index=False)
 
 
+def dict_to_df(dict_to_conv: DefaultDict, key_name: str, val_name: str, df_name: str) -> pd.DataFrame:
+    res = defaultdict(list)
+    for key, val in dict_to_conv.items():
+        res[key_name].append(key)
+        res[val_name].append(val)
+    df = pd.DataFrame(res)
+    df.to_csv(os.path.join(get_results_path(), df_name), index=False)
+    return df
+
+
 def load_graphs_features(filter_type: str, thresh: float):
     return pd.read_pickle(os.path.join('Graphs_pickle', filter_type, f'graph_{thresh}.pkl'))
 

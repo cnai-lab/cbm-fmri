@@ -1,7 +1,14 @@
+import os
+from typing import Dict, List, NoReturn, DefaultDict
+
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from collections import OrderedDict, defaultdict
 import seaborn as sns
+
+from utils import get_save_path, load_graphs_features
+
 
 def box_plot(paths, col_name, task, y_col, criteria, title):
     plt.clf()
@@ -24,3 +31,24 @@ def box_plot(paths, col_name, task, y_col, criteria, title):
     fig.figure.savefig(f'box_plot_{criteria}_{task}_{y_col}.png')
     plt.close()
 
+
+def build_features_for_scatters(filter_type: str, thresh_lst: List[float], col_name: str, y: np.ndarray) -> DefaultDict:
+    res = defaultdict(dict)
+    for thresh in thresh_lst:
+        df = load_graphs_features(filter_type, thresh)
+        df_relevant = df[col_name].values
+        for i in range(len(df)):
+            res[i]['values'] = res[i]['values'] + res[i]['values'].get([df_relevant[i]], [])
+            res[i]['target'] = y[i]
+    return res
+
+
+def scatter_plot(features: Dict, feature_name: str) -> NoReturn:
+    colors = np.arange(0, 100, 5)
+    colors_dict = {key: val for key, val in zip(features.keys(), colors)}
+
+    for key, item in features.items():
+        plt.scatter(x=features[key]['values'], y=features[key]['target'],
+                    c=colors_dict[key],  cmap='viridis')
+
+    plt.savefig(os.path.join(get_save_path(), f'scatter_graph_{feature_name}.png'))
