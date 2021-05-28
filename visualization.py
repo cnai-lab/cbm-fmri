@@ -7,7 +7,7 @@ import pandas as pd
 from collections import OrderedDict, defaultdict
 import seaborn as sns
 
-from utils import get_save_path, load_graphs_features
+from utils import get_save_path, load_graphs_features, get_results_path
 
 
 def box_plot(paths, col_name, task, y_col, criteria, title):
@@ -38,17 +38,17 @@ def build_features_for_scatters(filter_type: str, thresh_lst: List[float], col_n
         df = load_graphs_features(filter_type, thresh)
         df_relevant = df[col_name].values
         for i in range(len(df)):
-            res[i]['values'] = res[i]['values'] + res[i]['values'].get([df_relevant[i]], [])
-            res[i]['target'] = y[i]
+            res[i]['values'] = res[i].get('values', []) + [df_relevant[i]]
+            res[i]['target'] = res[i].get('target', []) + [y[i]]
     return res
 
 
 def scatter_plot(features: Dict, feature_name: str) -> NoReturn:
-    colors = np.arange(0, 100, 5)
+    colors = np.arange(0, 105, 5)
     colors_dict = {key: val for key, val in zip(features.keys(), colors)}
 
     for key, item in features.items():
         plt.scatter(x=features[key]['values'], y=features[key]['target'],
-                    c=colors_dict[key],  cmap='viridis')
+                    c=colors_dict[key] * len(features[key]['target']),  cmap='viridis')
 
-    plt.savefig(os.path.join(get_save_path(), f'scatter_graph_{feature_name}.png'))
+    plt.savefig(os.path.join(get_results_path(), f'scatter_graph_{feature_name}.png'))

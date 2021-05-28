@@ -6,6 +6,7 @@ from Deep.model import load_model
 from torch import nn
 from typing import NoReturn
 from torch_geometric.data import DataLoader
+from torchvision.models import vgg16
 from Deep.model_utils import load_criteria, load_optimizer
 from conf_pack.configuration import default_params
 from utils import get_data_path
@@ -46,4 +47,6 @@ def train_model(model: nn.Module, dl: DataLoader) -> NoReturn:
 
 
 if __name__ == '__main__':
-    main_train()
+    model = vgg16(pretrained=False)
+    print()
+    # main_train()

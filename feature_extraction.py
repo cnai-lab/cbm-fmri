@@ -82,17 +82,17 @@ def features_by_values(graphs: List[nx.Graph], func_features: List[Callable]) ->
     feat_as_dict = defaultdict(list)
     for func in tqdm(func_features):
         global_feature_vals_lst = [func(g) for g in graphs]
+        degrees = [nx.degree(g) for g in graphs]
         padding_by_zeros(global_feature_vals_lst, feat_as_dict, func.__name__, len(graphs))
 
-        old_time = datetime.datetime.now()
         for j, global_feature_vals in enumerate(global_feature_vals_lst):
             for i, val in enumerate(global_feature_vals.values()):
-                feat_as_dict[f'{func.__name__}_{i}'][j] = val
-        # write_time_of_function(func.__name__, old_time)
-    # keys_to_remove = [key for key in feat_as_dict.keys() if len(feat_as_dict[key]) < len(graphs) / 2]
-    # for key in keys_to_remove:
-    #     feat_as_dict.pop(key)
-
+                # Todo: Change it to more readable
+                if func.__name__ == 'average_neighbor_degree':
+                    anatomical_label = graphs[j].nodes()[i]['label']
+                    feat_as_dict[f'{func.__name__}_{i}_deg({degrees[j][i]})_label_{anatomical_label}'][j] = val
+                else:
+                    feat_as_dict[f'{func.__name__}_{i}'][j] = val
     return feat_as_dict
 
 
@@ -129,6 +129,7 @@ def main_global_features(graphs: List[nx.Graph]) -> pd.DataFrame:
     def rich_club_func(graph):
         return nx.rich_club_coefficient(graph, normalized=False)
     rich_club_func.__name__ = nx.rich_club_coefficient.__name__
+
 
     others = [nx.average_neighbor_degree, nx.average_degree_connectivity,
               rich_club_func]

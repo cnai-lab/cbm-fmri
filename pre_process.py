@@ -72,6 +72,16 @@ def path_to_time_series(path: str) -> np.ndarray:
     return time_series_cleaned
 
 
+def get_anatomical_node_labels():
+    power_atlas = datasets.fetch_coords_power_2011()
+    coords = np.vstack((power_atlas.rois['x'], power_atlas.rois['y'], power_atlas.rois['z'])).T
+    labels = []
+    for coordinate in coords:
+        coordinate_str = np.array2string(coordinate)
+        labels.append(coordinate_str)
+    return labels
+
+
 def time_series_to_correlation(time_series_lts: List[np.ndarray], is_abs: bool = False) -> List[np.ndarray]:
 
     connectivity_measure = ConnectivityMeasure(kind='correlation')
@@ -87,7 +97,7 @@ def time_series_to_correlation(time_series_lts: List[np.ndarray], is_abs: bool =
 
 
 def build_graphs_from_corr(filter_type, corr_lst: List[np.ndarray], param) -> List[nx.Graph]:
-    labels = get_labels()
+    labels = get_anatomical_node_labels()
     graphs = []
     for corr in corr_lst:
         graph = nx.from_numpy_matrix(corr, parallel_edges=False)
@@ -116,19 +126,6 @@ def create_graphs_features_df(filter_type: str, corr_lst: List[np.ndarray], thre
 def add_node_features(g: nx.Graph, node_features: np.ndarray) -> nx.Graph:
     return g
 
-
-def get_labels() -> List[str]:
-    '''
-
-    :return: labels of power atlas
-    '''
-    power = datasets.fetch_coords_power_2011()
-    coordinates = np.vstack((power.rois['x'], power.rois['y'], power.rois['z'])).T
-    labels = []
-    for coordinate in coordinates:
-        coordinate_str = np.array2string(coordinate)
-        labels.append(coordinate_str)
-    return labels
 
 
 def filter_edges(filter_type: str, graphs: List[nx.Graph], param) -> List[nx.Graph]:

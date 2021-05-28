@@ -3,6 +3,7 @@ import numpy as np
 import os
 
 c = ConfigParser()
+# c.read('conf_pack/config.ini')
 c.read('conf_pack/config.ini')
 default_params = c['Default Params']
 step = 0.01
