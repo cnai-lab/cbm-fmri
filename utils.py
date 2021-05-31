@@ -60,6 +60,11 @@ def get_y_true() -> np.ndarray:
     return df['Class'].values
 
 
+def get_y_true_regression() -> np.ndarray:
+    df = get_meta_data()
+    df.sort_values(by=['Subject'], inplace=True)
+    return df['Delta Change'].values
+
 def get_save_path() -> str:
     save_mapping_by_proj = {'stroke': STROKE_SAVE_PATH_PARENT, 'adhd': ADHD_SAVE_PATH_PARENT}
     project_type = default_params.get('project')

@@ -120,7 +120,7 @@ def create_graphs_features_df(filter_type: str, corr_lst: List[np.ndarray], thre
     for thresh in thresholds:
         graphs = build_graphs_from_corr(filter_type=filter_type, corr_lst=corr_lst, param=thresh)
         features_df = main_global_features(graphs)
-        features_df.to_pickle(os.path.join('Graphs_pickle', filter_type, f'graph_{thresh}.pkl'))
+        features_df.to_pickle(os.path.join('Graphs_pickle', filter_type, f'graph_{thresh:.2f}.pkl'))
 
 
 def add_node_features(g: nx.Graph, node_features: np.ndarray) -> nx.Graph:

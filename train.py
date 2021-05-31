@@ -63,9 +63,23 @@ def predict_by_criterions(model, col_names: List[str], filter_type: str, thresh:
     df = normalize_features(df)
     df_relevant_features = df.iloc[idx]
     y_relevant = y[idx]
+
     acc = accuracy_score(model.predict(df_relevant_features), y_relevant)
     return acc
 
+
+def predict_by_proba(model, X_test, thresh: float = 0.6):
+    rf = RandomForestClassifier()
+    rf.predict_proba(X_test)
+    prob = model.predict_proba(X_test)[0]
+    if prob > thresh:
+        return 1
+    elif prob < (1 - thresh):
+        return 0
+    else:
+        return -1
+
+        # Between 1-thresh to thresh
 
 def load_model(model_type: str) -> Union[nn.Module, RandomForestClassifier, None]:
     if model_type == 'deep':

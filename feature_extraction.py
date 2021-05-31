@@ -90,7 +90,8 @@ def features_by_values(graphs: List[nx.Graph], func_features: List[Callable]) ->
                 # Todo: Change it to more readable
                 if func.__name__ == 'average_neighbor_degree':
                     anatomical_label = graphs[j].nodes()[i]['label']
-                    feat_as_dict[f'{func.__name__}_{i}_deg({degrees[j][i]})_label_{anatomical_label}'][j] = val
+                    # feat_as_dict[f'{func.__name__}_{i}_deg({degrees[j][i]})_label_{anatomical_label}'] = val
+                    feat_as_dict[f'{func.__name__}_{i}_label_{anatomical_label}'] = val
                 else:
                     feat_as_dict[f'{func.__name__}_{i}'][j] = val
     return feat_as_dict
@@ -132,7 +133,7 @@ def main_global_features(graphs: List[nx.Graph]) -> pd.DataFrame:
 
 
     others = [nx.average_neighbor_degree, nx.average_degree_connectivity,
-              rich_club_func]
+             rich_club_func]
 
     others_feat = features_by_values(graphs, others)
     local_features = [nx.clustering, nx.degree, nx.degree_centrality, nx.closeness_centrality,
@@ -147,3 +148,6 @@ def main_global_features(graphs: List[nx.Graph]) -> pd.DataFrame:
     res.update(global_feat)
     res.update(others_feat)
     return pd.DataFrame(res)
+
+if __name__ == '__main__':
+    print(nx.average_neighbor_degree.__name__ == 'average_neighbor_degree')

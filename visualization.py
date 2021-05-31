@@ -43,12 +43,30 @@ def build_features_for_scatters(filter_type: str, thresh_lst: List[float], col_n
     return res
 
 
+def hist_class(features: Dict, feature_name: str) -> NoReturn:
+
+    zeroes_vals, ones_vals = [], []
+    for key, item in features.items():
+        if features[key]['target'] == 0:
+            zeroes_vals += features[key]['values']
+        elif features[key]['target'] == 1:
+            ones_vals += features[key]['values']
+    plt.hist(zeroes_vals)
+    plt.savefig(os.path.join(get_results_path(), f'zeroes_dist_{feature_name}.png'))
+    plt.clf()
+    plt.hist(ones_vals)
+    plt.savefig(os.path.join(get_results_path(), f'ones_dist_{feature_name}.png'))
+
+
 def scatter_plot(features: Dict, feature_name: str) -> NoReturn:
     colors = np.arange(0, 105, 5)
     colors_dict = {key: val for key, val in zip(features.keys(), colors)}
 
     for key, item in features.items():
+        # First of all, this more convenient. Please give attention, usually y should be
+        # the target. Even though, in binary - it's more convenient like this.
+
         plt.scatter(x=features[key]['values'], y=features[key]['target'],
-                    c=colors_dict[key] * len(features[key]['target']),  cmap='viridis')
+                    c=[colors_dict[key]] * len(features[key]['target']),  cmap='viridis')
 
     plt.savefig(os.path.join(get_results_path(), f'scatter_graph_{feature_name}.png'))
