@@ -10,7 +10,7 @@ from utils import *
 
 from collections import defaultdict
 
-from visualization import build_features_for_scatters, scatter_plot
+from visualization import build_features_for_scatters, scatter_plot, hist_class
 
 k = 100
 
@@ -82,17 +82,19 @@ def hyper_parameter(hyper_parameters: dict):
         for feat in feat_names_best:
             features_table[feat] = features_table[feat] + 1
 
-
     avg_acc /= len(y)
 
     counts_table_refactored = dict_to_df(counts_table, 'params', 'num_counts', 'count_table.csv')
+    create_stability_df(counts_table_refactored)
     feat_table_refactored = dict_to_df(features_table, 'feature', 'num_counts', 'feat_count_table.csv')
     feat_table_refactored.sort_values(by='num_counts', inplace=True)
 
-    for i in range(0, 1):
+    for i in range(0, 5):
         feat_name_to_plot = feat_table_refactored.iloc[i]['feature']
         scatter_plot(build_features_for_scatters(filter_type, hyper_parameters['threshold'],
                                                  feat_name_to_plot, get_y_true_regression()), feat_name_to_plot)
+        hist_class(build_features_for_scatters(filter_type, hyper_parameters['threshold'], feat_name_to_plot,
+                                               get_y_true()), feat_name_to_plot)
 
     with open(os.path.join(get_results_path(), 'Results.txt'), 'a') as f:
         f.write(f'The accuracy of this experiment is {avg_acc}\n')
@@ -124,5 +126,5 @@ def graph_pre_process():
 if __name__ == '__main__':
     # main()
     # data = fetch_data_example()
-    hyper_parameter({'threshold': [0.42, 0.43, 0.44, 0.45], 'num_features': [6]})
     # graph_pre_process()
+    hyper_parameter({'threshold': [0.43], 'num_features': [6]})

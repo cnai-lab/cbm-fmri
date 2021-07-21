@@ -1,3 +1,5 @@
+from collections import defaultdict
+
 import sktime
 from sktime.transformations.panel.rocket import MiniRocket
 import pandas as pd
@@ -5,10 +7,11 @@ from torchvision.models import resnet18
 import os
 import numpy as np
 import torch
+import librosa
+from tsfresh.feature_extraction import feature_calculators
+import scipy.stats as st
 from pyts.image import GramianAngularField, MarkovTransitionField, RecurrencePlot
 from typing import List
-
-
 
 
 def time_series_to_features(time_series_lst: List[np.ndarray]) -> List[np.ndarray]:
@@ -16,6 +19,7 @@ def time_series_to_features(time_series_lst: List[np.ndarray]) -> List[np.ndarra
     time_series_lst = time_series_lst.reshape(time_series_lst.shape[0], 1, time_series_lst.shape[1])
     transformed = mini.fit_transform(time_series_lst).values
     return transformed
+
 
 # We would use GAF  - Gramian Angular Fields, which are images represent time series in non carterian mode
 # Instead of using x, y as images, where each x y is determined using refernce point, angle
@@ -27,6 +31,20 @@ def time_series_to_images(time_series_lst: List[np.ndarray], vers: str = 'gramia
     gasf = GramianAngularField(image_size=24, method='summation')
     imgs = rp.fit_transform(time_series_lst)
     return imgs
+
+
+def time_series_to_basic_features(time_series_lst: List[np.ndarray]) -> List[np.ndarray]:
+    res = []
+    for ts in time_series_lst:
+        features = [np.mean(ts), np.std(ts), st.skew(ts), st.kurtosis(ts)]
+        mfcc = librosa.feature.mfcc(ts)
+        #         for i in range(len(mfcc)):
+        #             res[f'mfcc_{i}'].append(mfcc[i][0])
+        features.append(mfcc.mean(axis=0)[0])
+        features.append(feature_calculators.number_crossing_m(ts, 230))
+        features.append(feature_calculators.number_peaks(ts, 5))
+        res.append(np.array(features))
+    return res
 
 
 def load_pretrained_model(model_name: str):

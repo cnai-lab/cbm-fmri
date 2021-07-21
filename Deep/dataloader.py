@@ -8,7 +8,8 @@ import pandas as pd
 # from utils import get_data_path
 # from conf_pack.configuration import *
 # import os
-from Deep.feature_extraction_deep import time_series_to_features, time_series_to_images, images_to_feature_vector
+from Deep.feature_extraction_deep import time_series_to_features, time_series_to_images, images_to_feature_vector, \
+    time_series_to_basic_features
 from conf_pack.paths import *
 from pre_process import load_scans, build_graphs_from_corr
 
@@ -28,22 +29,23 @@ class GraphsDataset(InMemoryDataset):
     def len(self):
         return len(self.csv)
 
-    def get(self, idx: int) -> Tuple[Data, int, str]:
+    def get(self, idx: int) -> Tuple[Data, int]:
         full_path = os.path.join(self.root, 'nifti', f'{self.filenames[idx]}.nii')
         data_lst = load_scans([full_path], data_type='both', dir_path=self.root)
         activations = data_lst[0][1].swapaxes(0, 1)
         correlation = data_lst[0][0]
         graph = build_graphs_from_corr('density', [correlation], 0.01)[0]
 
-        features_from_activations = time_series_to_images(activations)
-        features = images_to_feature_vector(features_from_activations).detach().numpy()
+        features = time_series_to_basic_features(activations)
+        # features_from_activations = time_series_to_images(activations)
+        # features = images_to_feature_vector(features_from_activations).detach().numpy()
 
         # features_from_activations = time_series_to_features(activations)
         features_to_nodes = dict(zip(range(len(features)),
                                                        features))
         nx.set_node_attributes(graph, features_to_nodes, 'activations')
         # Todo: understand why the label return is int type 64 and not int.
-        return from_networkx(graph), int(self.labels[idx]), self.filenames[idx]
+        return from_networkx(graph), int(self.labels[idx])
 
 
 def nx_lst_to_dl(graphs: List[nx.Graph]) -> DataLoader:

@@ -17,7 +17,7 @@ from utils import get_data_path
 def main_train():
     dataset = GraphsDataset(root=get_data_path())
     # model = load_model(num_feat=924, num_classes=2)
-    model = load_model(num_feat=512, num_classes=2)
+    model = load_model(num_feat=7, num_classes=2).double()
     dl = DataLoader(dataset, batch_size=default_params.getint('batch_size'), shuffle=True)
     train_model(model, dl)
 
@@ -27,10 +27,11 @@ def train_model(model: nn.Module, dl: DataLoader) -> NoReturn:
     optimizer = load_optimizer(model)
     with torch.enable_grad():
         for epoch in range(default_params.getint('num_epochs')):
-            avg_loss, avg_acc, num_batches = 0, 0, 0
+            avg_loss, avg_acc = 0, 0
             print(f'Start epoch number {epoch}')
-            for graph, label, filename in dl:
-                num_batches += 1
+            for num_batches, (graph, label) in enumerate(dl, start=1):
+
+                print(f'Ran batch {num_batches}')
                 optimizer.zero_grad()
                 output = model(graph)
                 loss = criteria(output, label)
@@ -40,6 +41,7 @@ def train_model(model: nn.Module, dl: DataLoader) -> NoReturn:
                 _, preds = torch.max(output, dim=1)
                 avg_loss += loss.item()
                 avg_acc += accuracy_score(y_true=label, y_pred=preds)
+                # print(f'avg_acc is {avg_acc} / {num_batches}')
             print(f'The loss the epoch is {avg_loss / num_batches}')
             print(f'The accuracy the epoch is {avg_acc / num_batches}')
                 # print(f'The loss is : {loss.item()}')
@@ -47,6 +49,4 @@ def train_model(model: nn.Module, dl: DataLoader) -> NoReturn:
 
 
 if __name__ == '__main__':
-    model = vgg16(pretrained=False)
-    print()
-    # main_train()
+    main_train()

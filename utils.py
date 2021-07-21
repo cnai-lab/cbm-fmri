@@ -1,4 +1,4 @@
-from typing import NoReturn, DefaultDict
+from typing import NoReturn, DefaultDict, Dict, Tuple
 import datetime
 import pandas as pd
 import numpy as np
@@ -27,6 +27,27 @@ def dict_to_df(dict_to_conv: DefaultDict, key_name: str, val_name: str, df_name:
     df = pd.DataFrame(res)
     df.to_csv(os.path.join(get_results_path(), df_name), index=False)
     return df
+
+
+def create_stability_df(count_table_df: pd.DataFrame) -> NoReturn:
+    '''
+    This method takes the count table of the hyper-parameters and creates txt file with the variance of their values
+    :param count_table_df:
+    :return:
+    '''
+    params = count_table_df['params'].values
+    num_counts = count_table_df['num_counts'].values
+    total_criteria, total_num_features = 0, 0
+    for (criteria, features_num), num_appears in zip(params, num_counts):
+        total_criteria += criteria * num_appears
+        total_num_features += features_num * num_appears
+    criteria_var = np.var(np.array(total_criteria))
+    num_features_var = np.var(np.array(total_num_features))
+    with open(os.path.join(get_results_path(), 'hss.txt'), 'a') as f:
+        f.write(f'The variance of criteria selection is {criteria_var} \n. The variance of number of features is '
+                f'{num_features_var}')
+
+
 
 
 def load_graphs_features(filter_type: str, thresh: float):

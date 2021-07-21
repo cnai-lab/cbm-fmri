@@ -9,6 +9,10 @@ import seaborn as sns
 
 from utils import get_save_path, load_graphs_features, get_results_path
 
+colors = ['black', 'gray', 'rosybrown', 'brown', 'darkred', 'red', 'mistyrose', 'salmon', 'sienna', 'sandybrown',
+          'peru', 'bisque', 'gold', 'lightyellow', 'lawngreen', 'darkgreen', 'turquoise', 'teal', 'deepskyblue',
+          'slategray', 'blue']
+
 
 def box_plot(paths, col_name, task, y_col, criteria, title):
     plt.clf()
@@ -30,7 +34,7 @@ def box_plot(paths, col_name, task, y_col, criteria, title):
     plt.figure(figsize=(4, 2))
     fig.figure.savefig(f'box_plot_{criteria}_{task}_{y_col}.png')
     plt.close()
-
+    plt.clf()
 
 def build_features_for_scatters(filter_type: str, thresh_lst: List[float], col_name: str, y: np.ndarray) -> DefaultDict:
     res = defaultdict(dict)
@@ -47,26 +51,71 @@ def hist_class(features: Dict, feature_name: str) -> NoReturn:
 
     zeroes_vals, ones_vals = [], []
     for key, item in features.items():
-        if features[key]['target'] == 0:
+        if 0 in features[key]['target']:
             zeroes_vals += features[key]['values']
-        elif features[key]['target'] == 1:
+        elif 1 in features[key]['target']:
             ones_vals += features[key]['values']
-    plt.hist(zeroes_vals)
-    plt.savefig(os.path.join(get_results_path(), f'zeroes_dist_{feature_name}.png'))
+
+    min_val = min(min(zeroes_vals), min(ones_vals))
+    max_val = max(max(zeroes_vals), max(ones_vals))
+
+    plot_histogram(min_val, max_val, [zeroes_vals], 'Zeroes Distribution', 'feature value', 'counting values',
+                   f'zeroes_dist_{feature_name}.png', ['r'], ['Zero Dist'])
     plt.clf()
-    plt.hist(ones_vals)
-    plt.savefig(os.path.join(get_results_path(), f'ones_dist_{feature_name}.png'))
+
+    plot_histogram(min_val, max_val, [ones_vals], 'Ones Distribution', 'feature value', 'counting values',
+               f'ones_dist_{feature_name}.png', ['b'], ['One Dist'])
+
+    plt.clf()
+
+    plot_histogram(min_val, max_val, [zeroes_vals, ones_vals], 'Combined Distribution', 'feature value',
+                   'counting values',
+                   f'combined_dist_{feature_name}.png', ['b', 'r'], ['Zero Dist', 'One Dist'])
+
+    # plot_histogram(min_val, max_val, ones_vals, 'Ones Distribution', 'feature value', 'counting values',
+    #                f'combined_dist_{feature_name}.png', 'b')
+    plt.clf()
+
+
+def plot_histogram(min_val: float, max_val: float, to_plot: List[List], title: str, x_label: str,
+                   y_label: str, save_path: str, colors: List[str], labels: List[str]) -> NoReturn:
+    for hist, label, color in zip(to_plot, labels, colors):
+        plt.hist(hist, label=label, color=color)
+    plt.xlabel(x_label)
+    plt.ylabel(y_label)
+    plt.title(title)
+    plt.xlim((min_val, max_val))
+    plt.legend()
+    plt.savefig(os.path.join(get_results_path(), save_path))
 
 
 def scatter_plot(features: Dict, feature_name: str) -> NoReturn:
-    colors = np.arange(0, 105, 5)
+
     colors_dict = {key: val for key, val in zip(features.keys(), colors)}
 
     for key, item in features.items():
-        # First of all, this more convenient. Please give attention, usually y should be
-        # the target. Even though, in binary - it's more convenient like this.
 
         plt.scatter(x=features[key]['values'], y=features[key]['target'],
                     c=[colors_dict[key]] * len(features[key]['target']),  cmap='viridis')
+        plt.xlabel('Values of feature')
+        plt.ylabel('Target function')
 
     plt.savefig(os.path.join(get_results_path(), f'scatter_graph_{feature_name}.png'))
+    plt.clf()
+
+    for key in features.keys():
+        features[key]['subject'] = [key] * len(features[key]['values'])
+    df_res = pd.concat([pd.DataFrame(features[key]) for key in features.keys()])
+    df_res.sort_values(by='target', inplace=True)
+    # labels = [df_res[key]['target'][0] for key in features.keys()]    df_res['index'] = df_res.index
+    fig = sns.boxplot(y='values', x='subject', data=df_res, showmeans=True, order=df_res['subject'].unique())
+    # plt.legend(labels)
+    plt.savefig(os.path.join(get_results_path(), f'box_plot.png'))
+    plt.clf()
+    return None
+    for key, item in features.items():
+
+        fig = sns.boxplot(y='values', x='target', data=features[key], showmeans=True)
+        plt.savefig(os.path.join(get_results_path(), f'{key}.png'))
+        plt.clf()
+    # plt.savefig(os.path.join(get_results_path(), f'box_plot_{feature_name}.png'))

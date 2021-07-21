@@ -88,12 +88,12 @@ def features_by_values(graphs: List[nx.Graph], func_features: List[Callable]) ->
         for j, global_feature_vals in enumerate(global_feature_vals_lst):
             for i, val in enumerate(global_feature_vals.values()):
                 # Todo: Change it to more readable
-                if func.__name__ == 'average_neighbor_degree':
-                    anatomical_label = graphs[j].nodes()[i]['label']
+                # if func.__name__ == 'average_neighbor_degree':
+                #     anatomical_label = graphs[j].nodes()[i]['label']
                     # feat_as_dict[f'{func.__name__}_{i}_deg({degrees[j][i]})_label_{anatomical_label}'] = val
-                    feat_as_dict[f'{func.__name__}_{i}_label_{anatomical_label}'] = val
-                else:
-                    feat_as_dict[f'{func.__name__}_{i}'][j] = val
+                    # feat_as_dict[f'{func.__name__}_{i}_label_{anatomical_label}'] = val
+                # else:
+                feat_as_dict[f'{func.__name__}_{i}'][j] = val
     return feat_as_dict
 
 

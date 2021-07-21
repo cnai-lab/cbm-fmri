@@ -118,3 +118,9 @@ def info_gain_all_features(df: pd.DataFrame, y_true: np.ndarray, threshold: floa
         pd.DataFrame(df_res, index=df_res['threshold']).to_csv(full_path, header=False, mode='a')
     else:
         pd.DataFrame(df_res, index=df_res['threshold']).to_csv(full_path)
+
+
+if __name__ == '__main__':
+    df = pd.DataFrame({'values': [1.53, 1.54, 1.78, 2.4],
+                       'target': [2, 2, 1, 2]})
+    mutual_info_classif(df[['values']], df['target'])
