@@ -126,5 +126,5 @@ def graph_pre_process():
 if __name__ == '__main__':
     # main()
     # data = fetch_data_example()
-    # graph_pre_process()
+    graph_pre_process()
     hyper_parameter({'threshold': [0.43], 'num_features': [6]})
