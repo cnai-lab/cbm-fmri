@@ -49,15 +49,26 @@ def create_stability_df(count_table_df: pd.DataFrame) -> NoReturn:
         f.write(f'The variance of criteria selection is {criteria_var} \n. The variance of number of features is '
                 f'{num_features_var}')
 
+#
+# def compute_rs_stability(results_df: pd.DataFrame) -> NoReturn:
+#     sorted_df = results_df.sort_values(by=['number_of_features', 'criteria'])
+#     for
+
 def initialize_hyper_parameters():
     performances, counts_table, features_table = defaultdict(list), defaultdict(int), defaultdict(int)
     y = get_y_true()
     avg_acc = 0
-    data_path = os.path.join(get_data_path(), 'nifti')
-    names = [os.path.join(data_path, name) for name in get_names()]
-    corr_lst = load_scans(names, get_data_path())
+    corr_lst = get_corr_lst()
     filter_type = default_params.get('filter')
     return performances, counts_table, features_table, y, avg_acc, corr_lst, filter_type
+
+
+def get_corr_lst():
+    df = get_meta_data()
+    df.sort_values(by=[default_params.get('subject')], inplace=True)
+    names = df[default_params.get('subject')]
+    corr_lst = load_scans(names, get_data_path())
+    return corr_lst
 
 def load_graphs_features(filter_type: str, thresh: float):
     return pd.read_pickle(os.path.join('Graphs_pickle', filter_type, f'graph_{thresh}.pkl'))

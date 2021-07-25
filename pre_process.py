@@ -14,7 +14,9 @@ def load_scans(scan_paths: List[str], dir_path: str, data_type: str = 'correlati
         Union[List[np.ndarray], Tuple[List[np.ndarray], List[np.ndarray]]]:
 
     time_series_lst, corr_lst = [], []
-    names = [os.path.basename(path) for path in scan_paths]
+    # names = [os.path.basename(path) for path in scan_paths]
+    names = [f'{path}.nii' for path in scan_paths]
+    # names = scan_paths
 
     if not default_params.getboolean('save_scans'):
         return load_saved_scans(dir_path=dir_path, data_type=data_type, names=names)

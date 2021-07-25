@@ -145,11 +145,6 @@ def graph_pre_process():
     create_graphs_features_df(corr_lst=corr_lst, filter_type='threshold', thresholds=np.arange(start=0.4, stop=0.7,
                                                                                step=0.01))
 
-def get_corr_lst():
-    data_path = os.path.join(get_data_path(), 'nifti')
-    names = [os.path.join(data_path, name) for name in os.listdir(data_path)]
-    corr_lst = load_scans(names, get_data_path())
-    return corr_lst
 
 
 def get_graphs(corr_lst: List[np.ndarray], params: List[float]) -> Dict:
