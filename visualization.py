@@ -36,11 +36,14 @@ def box_plot(paths, col_name, task, y_col, criteria, title):
     plt.close()
     plt.clf()
 
+
 def build_features_for_scatters(filter_type: str, thresh_lst: List[float], col_name: str, y: np.ndarray) -> DefaultDict:
     res = defaultdict(dict)
     for thresh in thresh_lst:
         df = load_graphs_features(filter_type, thresh)
-        df_relevant = df[col_name].values
+        df_relevant = np.zeros(len(df))
+        if col_name in df.columns:
+            df_relevant = df[col_name].values
         for i in range(len(df)):
             res[i]['values'] = res[i].get('values', []) + [df_relevant[i]]
             res[i]['target'] = res[i].get('target', []) + [y[i]]

@@ -14,10 +14,13 @@ from torch import nn
 from Deep.model import Net
 from sklearn.feature_selection import mutual_info_classif, SelectKBest
 from multiprocessing import Process, Pool
+
+from conf_pack.configuration import default_params
 from utils import write_selected_features, load_graphs_features, get_results_path
 
 
-def train_model(df: pd.DataFrame, y: np.ndarray, num_features: int) -> Tuple[float, RandomForestClassifier, List[str]]:
+def train_model(df: pd.DataFrame, y: np.ndarray, num_features: int) -> \
+        Tuple[float, RandomForestClassifier, List[str]]:
     loo = LeaveOneOut()
     df = df.fillna(0)
     df = normalize_features(df)
@@ -94,12 +97,15 @@ def load_model(model_type: str) -> Union[nn.Module, RandomForestClassifier, None
 def select_features(x_train: pd.DataFrame, y_true: np.ndarray, num_features: int) -> Tuple[List[str], List[float]]:
     def inf_gain(X, y):
         return mutual_info_classif(X, y)
-    selector = SelectKBest(inf_gain, k=num_features).fit(x_train, y_true)
-    mask = selector.get_support()
-    values = mutual_info_classif(x_train, y_true)[mask]
-    feature_names = x_train.columns[mask]
-    return feature_names, values
+    if default_params.get('features_type') == 'globals':
 
+        selector = SelectKBest(inf_gain, k=num_features).fit(x_train, y_true)
+        mask = selector.get_support()
+        values = mutual_info_classif(x_train, y_true)[mask]
+        feature_names = x_train.columns[mask]
+        return feature_names, values
+    else:
+        return list(x_train.columns), list(np.ones(len(x_train.columns)))
 
 def normalize_features(df: pd.DataFrame) -> pd.DataFrame:
     min_max = preprocessing.MinMaxScaler()

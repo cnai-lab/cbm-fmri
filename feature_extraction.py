@@ -51,7 +51,9 @@ def embedding_features(graphs: List[nx.Graph], embedding_func: Callable) -> Defa
     return embed_as_dic
 
 
+
 def features_by_type(feat_type: str, graphs: List[nx.Graph], dim: int):
+
     def heat_embedding():
         return [heat(graph, normalized_laplacian=False, timescales=np.logspace(-2, 2, dim)) for graph in graphs]
 
@@ -69,7 +71,13 @@ def features_by_type(feat_type: str, graphs: List[nx.Graph], dim: int):
         return g2_vec_model.get_embedding()
 
     mapping_embed = {'heat': heat_embedding, 'wave': wave_embedding, 'fgsd': fgsd_embedding, 'graph2vec': graph2vec}
-    return mapping_embed[feat_type]()
+    res = defaultdict(list)
+
+    list_embedding = mapping_embed[feat_type]()
+    for graph_embedding in list_embedding:
+        for i, dim in enumerate(graph_embedding):
+            res[f'dim_{i}'].append(dim)
+    return pd.DataFrame(res)
 
 
 def padding_by_zeros(f: List[Dict], dict_to_pad: Dict, padding_name, zeros_size: int) -> NoReturn:

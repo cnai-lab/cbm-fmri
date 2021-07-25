@@ -7,6 +7,8 @@ from conf_pack.configuration import default_params, c
 from collections import defaultdict
 from typing import List
 
+from pre_process import load_scans
+
 
 def write_time_of_function(func_name: str, old_time: datetime.datetime) -> NoReturn:
     df = pd.DataFrame()
@@ -47,11 +49,26 @@ def create_stability_df(count_table_df: pd.DataFrame) -> NoReturn:
         f.write(f'The variance of criteria selection is {criteria_var} \n. The variance of number of features is '
                 f'{num_features_var}')
 
-
-
+def initialize_hyper_parameters():
+    performances, counts_table, features_table = defaultdict(list), defaultdict(int), defaultdict(int)
+    y = get_y_true()
+    avg_acc = 0
+    data_path = os.path.join(get_data_path(), 'nifti')
+    names = [os.path.join(data_path, name) for name in get_names()]
+    corr_lst = load_scans(names, get_data_path())
+    filter_type = default_params.get('filter')
+    return performances, counts_table, features_table, y, avg_acc, corr_lst, filter_type
 
 def load_graphs_features(filter_type: str, thresh: float):
     return pd.read_pickle(os.path.join('Graphs_pickle', filter_type, f'graph_{thresh}.pkl'))
+
+
+def save_config(conf_to_save: Dict):
+    df = pd.DataFrame()
+    for key in conf_to_save.keys():
+        df_temp = pd.DataFrame({key: conf_to_save[key]})
+        df = pd.concat([df, df_temp], axis=1)
+    df.to_csv(os.path.join(get_results_path(), 'configuration.csv'))
 
 
 def write_selected_features(feature_names: List[str], info_gain: List[float]) -> NoReturn:
@@ -77,8 +94,8 @@ def write_selected_features(feature_names: List[str], info_gain: List[float]) ->
 
 def get_y_true() -> np.ndarray:
     df = get_meta_data()
-    df.sort_values(by=['Subject'], inplace=True)
-    return df['Class'].values
+    df.sort_values(by=[default_params.get('subject')], inplace=True)
+    return df[default_params.get('class_name')].values
 
 
 def get_y_true_regression() -> np.ndarray:
