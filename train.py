@@ -16,6 +16,7 @@ from sklearn.feature_selection import mutual_info_classif, SelectKBest
 from multiprocessing import Process, Pool
 
 from conf_pack.configuration import default_params
+from feature_extraction import features_by_type
 from utils import write_selected_features, load_graphs_features, get_results_path
 
 
@@ -58,9 +59,14 @@ def train_model_iteration(X_train: pd.DataFrame, y_train: np.ndarray,
     return accuracy_score(model.predict(X_test), y_test)
 
 
-def predict_by_criterions(model, col_names: List[str], filter_type: str, thresh: float, idx: np.ndarray,
-                          y: np.ndarray) -> float:
-    df = load_graphs_features(filter_type, thresh)
+def predict_by_criterions(**kwargs) -> float:
+
+    col_names = kwargs['col_names']
+    df = kwargs['df']
+    idx = kwargs['idx']
+    y = kwargs['y']
+    model = kwargs['model']
+
     df = df[col_names]
     df = df.fillna(0)
     df = normalize_features(df)

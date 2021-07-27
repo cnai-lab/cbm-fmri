@@ -144,10 +144,19 @@ def filter_by_threshold(graph: nx.Graph, threshold: float) -> nx.Graph:
     # edges_to_remove = [edge for edge in edges if edges[edge]['weight'] < threshold]
     # g_copy.remove_edges_from(edges_to_remove)
     # return g_copy
+
     edges = graph.edges
     amount_of_edges = len([edge for edge in edges if edges[edge]['weight'] >= threshold])
-    return filter_by_amount(graph, amount_of_edges)
+    temp = filter_by_amount(graph, amount_of_edges)
+    return remove_edges_specific_weights(temp, 0.47, 0.57)
 
+
+def remove_edges_specific_weights(graph: nx.Graph, min_thresh: float, max_thresh: float) -> nx.Graph:
+    g_copy = graph.copy()
+    edges = g_copy.edges
+    edges_to_remove = [edge for edge in edges if min_thresh <= edges[edge]['weight'] <= max_thresh]
+    g_copy.remove_edges_from(edges_to_remove)
+    return g_copy
 
 def filter_by_pmfg(graph: nx.Graph, param: int = 0) -> nx.Graph:
     amount_of_nodes = len(graph.nodes)

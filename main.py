@@ -9,6 +9,7 @@ import nilearn
 from utils import *
 from conf_pack.opts import parser
 from collections import defaultdict
+from typing import Callable
 
 from visualization import build_features_for_scatters, scatter_plot, hist_class
 
@@ -57,7 +58,7 @@ def hyper_parameter(hyper_parameters: Dict):
     performances, counts_table, features_table, y, avg_acc, corr_lst, filter_type = initialize_hyper_parameters()
     is_globals = default_params.get('features_type') == 'globals'
     if not is_globals:
-        graphs = get_graphs(get_corr_lst(), tune_parameters[filter_type])
+        graphs = get_graphs(get_corr_lst(), hyper_parameters[filter_type])
 
     for train_idx, test_idx in loo.split(corr_lst):
 
@@ -83,9 +84,14 @@ def hyper_parameter(hyper_parameters: Dict):
                     best_acc = acc
                     feat_names_best = feat_names
                     best_thresh, best_num, best_model = criteria_thresh, num_features, model
+        if is_globals:
+            df = load_graphs_features(filter_type, best_thresh)
+
+        else:
+            df = features_by_type(default_params.get('features_type'), graphs[best_thresh], best_num)
 
         avg_acc += predict_by_criterions(model=best_model, filter_type=filter_type, thresh=best_thresh, idx=test_idx,
-                                         y=y, col_names=feat_names_best)
+                                         y=y, col_names=feat_names_best, best_num=best_num, df=df)
 
         counts_table[(best_thresh, best_num)] = counts_table[(best_thresh, best_num)] + 1
 
@@ -99,8 +105,8 @@ def hyper_parameter(hyper_parameters: Dict):
     feat_table_refactored = dict_to_df(features_table, 'feature', 'num_counts', 'feat_count_table.csv')
     feat_table_refactored.sort_values(by='num_counts', inplace=True)
 
-    for i in range(0, 5):
-        plot_hyper_parameters(feat_table_refactored, filter_type, hyper_parameters, i)
+    # for i in range(0, 5):
+    #     plot_hyper_parameters(feat_table_refactored, filter_type, hyper_parameters, i)
 
     with open(os.path.join(get_results_path(), 'Results.txt'), 'a') as f:
         f.write(f'The accuracy of this experiment is {avg_acc}\n')
@@ -153,14 +159,36 @@ def get_graphs(corr_lst: List[np.ndarray], params: List[float]) -> Dict:
         graphs_by_param[param] = build_graphs_from_corr(default_params.get('filter'), corr_lst, param)
     return graphs_by_param
 
-if __name__ == '__main__':
-    main()
-    # data = fetch_data_example()
-    # graph_pre_process()
-    start = 0.5
-    stop = 0.51
-    # config = {'threshold': [0.43, 0.44], 'num_features': [6]}
-    # config = {'threshold': list(set(list(np.arange(start, stop, step=0.01)) + list(np.arange(0.42, 0.43, step=0.01)))),
-    #           'num_features': list(range(1, 2))}
 
+def embedding_experiments(func: Callable, *args) -> NoReturn:
+    for exp in ['wave', 'heat', 'graph2vec', 'fgsd']:
+        c.set('Default Params', 'features_type', exp)
+        c.set('Default Params', 'result_path', 'default')
+        func(args[0])
+
+
+def objective_func_experiments(func: Callable, *args) -> NoReturn:
+    for target_func in ['Is Efficient', 'CBM_T1_Classification', 'CBM_T2_Classification']:
+        c.set('Default Params', 'class_name', target_func)
+        c.set('Default Params', 'result_path', 'default')
+        func(args)
+
+
+def wrap_func(func_wrapper: Callable, func: Callable) -> Callable:
+    return lambda: func_wrapper(func)
+
+
+
+if __name__ == '__main__':
+    # main()
+    # # data = fetch_data_example()
+    # # graph_pre_process()
+    start = 0.40
+    stop = 0.70
+    # # config = {'threshold': [0.43, 0.44], 'num_features': [6]}
+    config = {'threshold': list(np.arange(start, stop, step=0.01)),
+              'num_features': list(range(1, 10))}
+
+    embedding_experiments(hyper_parameter, config)
+    # wrap_func(embedding_experiments, hyper_parameter)
     # hyper_parameter(config)
