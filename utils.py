@@ -1,5 +1,8 @@
+import os
 from typing import NoReturn, DefaultDict, Dict, Tuple
 import datetime
+
+import networkx as nx
 import pandas as pd
 import numpy as np
 from conf_pack.paths import *
@@ -7,7 +10,6 @@ from conf_pack.configuration import default_params, c
 from collections import defaultdict
 from typing import List
 
-from pre_process import load_scans
 
 
 def write_time_of_function(func_name: str, old_time: datetime.datetime) -> NoReturn:
@@ -54,24 +56,11 @@ def create_stability_df(count_table_df: pd.DataFrame) -> NoReturn:
 #     sorted_df = results_df.sort_values(by=['number_of_features', 'criteria'])
 #     for
 
-def initialize_hyper_parameters():
-    performances, counts_table, features_table = defaultdict(list), defaultdict(int), defaultdict(int)
-    y = get_y_true()
-    avg_acc = 0
-    corr_lst = get_corr_lst()
-    filter_type = default_params.get('filter')
-    return performances, counts_table, features_table, y, avg_acc, corr_lst, filter_type
 
-
-def get_corr_lst():
-    df = get_meta_data()
-    df.sort_values(by=[default_params.get('subject')], inplace=True)
-    names = df[default_params.get('subject')]
-    corr_lst = load_scans(names, get_data_path())
-    return corr_lst
 
 def load_graphs_features(filter_type: str, thresh: float):
     return pd.read_pickle(os.path.join('Graphs_pickle', filter_type, f'graph_{thresh}.pkl'))
+
 
 
 def save_config(conf_to_save: Dict):

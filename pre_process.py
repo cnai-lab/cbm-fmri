@@ -1,14 +1,18 @@
+import os
+from collections import defaultdict
+
 import numpy as np
 from nilearn.input_data import NiftiSpheresMasker
 from nilearn.connectome import ConnectivityMeasure
 from typing import List, Union, Tuple, NoReturn
 import networkx as nx
 from feature_extraction import main_global_features
-# from utils import *
 import nilearn.datasets as datasets
 from copy import deepcopy
 from conf_pack.configuration import *
 # dataloader ->
+from utils import get_data_path, get_names, get_meta_data, get_y_true
+
 
 def load_scans(scan_paths: List[str], dir_path: str, data_type: str = 'correlation') -> \
         Union[List[np.ndarray], Tuple[List[np.ndarray], List[np.ndarray]]]:
@@ -63,6 +67,23 @@ def save_numpy_lst(dir_path: str, names: List[str], data_type: str, npy_to_save:
         np.save(f'{path_to_save}.npy', npy_file)
 
 
+def save_graphs(dir_path: str, names: List[str], graphs_to_save: List[nx.Graph], filter_type: str) -> NoReturn:
+    for name, graph in zip(names, graphs_to_save):
+        path_to_save = os.path.join(dir_path, filter_type)
+        os.makedirs(path_to_save, exist_ok=True)
+        nx.write_gml(graph, os.path.join(path_to_save, f'{name}.gml'))
+
+
+def load_graphs(dir_path: str, names: List[str], filter_type: str) -> List[nx.Graph]:
+    graphs = []
+    for name in names:
+        path_to_load = os.path.join(dir_path, filter_type, f'{name}.gml')
+        g = nx.read_gml(path_to_load)
+        # g.nodes = [int(node) for node in g.nodes]
+        graphs.append(g)
+    return graphs
+
+
 def path_to_time_series(path: str) -> np.ndarray:
 
     power_atlas = datasets.fetch_coords_power_2011()
@@ -84,7 +105,7 @@ def get_anatomical_node_labels():
     return labels
 
 
-def time_series_to_correlation(time_series_lts: List[np.ndarray], is_abs: bool = False) -> List[np.ndarray]:
+def time_series_to_correlation(time_series_lts: List[np.ndarray], is_abs: bool = True) -> List[np.ndarray]:
 
     connectivity_measure = ConnectivityMeasure(kind='correlation')
     corr_mat_lst = connectivity_measure.fit_transform(time_series_lts)
@@ -98,14 +119,20 @@ def time_series_to_correlation(time_series_lts: List[np.ndarray], is_abs: bool =
     return corr_mat_lst
 
 
-def build_graphs_from_corr(filter_type, corr_lst: List[np.ndarray], param) -> List[nx.Graph]:
+def build_graphs_from_corr(filter_type: str, corr_lst: List[np.ndarray], param) -> List[nx.Graph]:
     labels = get_anatomical_node_labels()
     graphs = []
+    names = get_names()
+    if filter_type == 'pmfg':
+        graphs = load_graphs(get_data_path(), names, filter_type)
+        return graphs
     for corr in corr_lst:
         graph = nx.from_numpy_matrix(corr, parallel_edges=False)
         nx.set_node_attributes(graph, dict(zip(range(len(labels)), labels)), 'label')
         graphs.append(graph)
-    return filter_edges(filter_type, graphs, param)
+    graphs = filter_edges(filter_type, graphs, param)
+    save_graphs(get_data_path(), names, graphs, filter_type)
+    return graphs
 
 
 def build_graphs_with_activations(scans_path: List[str], filter_type: str = 'density',
@@ -117,7 +144,26 @@ def build_graphs_with_activations(scans_path: List[str], filter_type: str = 'den
     return graphs
 
 
-def create_graphs_features_df(filter_type: str, corr_lst: List[np.ndarray], thresholds: Union[List[float], np.ndarray] ):
+def initialize_hyper_parameters():
+    performances, counts_table, features_table = defaultdict(list), defaultdict(int), defaultdict(int)
+    y = get_y_true()
+    avg_acc = 0
+    corr_lst = get_corr_lst()
+    filter_type = default_params.get('filter')
+    return performances, counts_table, features_table, y, avg_acc, corr_lst, filter_type
+
+
+
+
+def get_corr_lst():
+    df = get_meta_data()
+    df.sort_values(by=[default_params.get('subject')], inplace=True)
+    names = df[default_params.get('subject')]
+    corr_lst = load_scans(names, get_data_path())
+    return corr_lst
+
+
+def create_graphs_features_df(filter_type: str, corr_lst: List[np.ndarray], thresholds: Union[List[float], np.ndarray]):
     os.makedirs(f'Graphs_pickle/{filter_type}', exist_ok=True)
     for thresh in thresholds:
         graphs = build_graphs_from_corr(filter_type=filter_type, corr_lst=corr_lst, param=thresh)
@@ -135,6 +181,7 @@ def filter_edges(filter_type: str, graphs: List[nx.Graph], param) -> List[nx.Gra
     res = []
     for graph in graphs:
         res.append(mapping_filter[filter_type](graph, param))
+        print(f'finished graph !')
     return res
 
 
@@ -164,15 +211,17 @@ def filter_by_pmfg(graph: nx.Graph, param: int = 0) -> nx.Graph:
     sorted_edges = sort_graph_edges(graph)
     sorted_edges.reverse()
     pmfg = nx.Graph()
-    nodes_with_attr = [(node, {'label': node['label']}) for node in list(graph.nodes())]
+    nodes = graph.nodes()
+    nodes_with_attr = [(node, {'label': nodes[i]['label']}) for i, node in enumerate(nodes)]
     pmfg.add_nodes_from(nodes_with_attr)
 
     for edge in sorted_edges:
-        pmfg.add_edge(edge['source'], edge['dest'])
-        if not nx.check_planarity(pmfg):
-            pmfg.remove_edge(edge['source'], edge['dest'])
+        pmfg.add_edge(edge[0], edge[1], weight=edge[2]['weight'])
+        if not nx.check_planarity(pmfg)[0]:
+            pmfg.remove_edge(edge[0], edge[1])
         if len(pmfg.edges()) == amount_of_edges:
             return pmfg
+    return pmfg
 
 
 def filter_by_dens(graph: nx.Graph, density: float) -> nx.Graph:

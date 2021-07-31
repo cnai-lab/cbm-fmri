@@ -2,7 +2,7 @@ import numpy as np
 from sklearn.model_selection import LeaveOneOut
 import copy
 from conf_pack.configuration import tune_parameters
-from pre_process import build_graphs_from_corr, load_scans, create_graphs_features_df
+from pre_process import build_graphs_from_corr, load_scans, create_graphs_features_df, get_corr_lst
 from feature_extraction import main_global_features, features_by_type
 from train import train_model, predict_by_criterions, info_gain_all_features
 import nilearn
@@ -64,7 +64,7 @@ def hyper_parameter(hyper_parameters: Dict):
 
         best_thresh, best_acc, best_num, best_model, feat_names_best = 0, 0, 0, None, None
 
-        for criteria_thresh in hyper_parameters['threshold']:
+        for criteria_thresh in hyper_parameters[default_params.get('filter')]:
 
             if is_globals:
                 df = load_graphs_features(filter_type, criteria_thresh)
@@ -151,8 +151,6 @@ def graph_pre_process():
     create_graphs_features_df(corr_lst=corr_lst, filter_type='threshold', thresholds=np.arange(start=0.4, stop=0.7,
                                                                                step=0.01))
 
-
-
 def get_graphs(corr_lst: List[np.ndarray], params: List[float]) -> Dict:
     graphs_by_param = {}
     for param in params:
@@ -161,7 +159,8 @@ def get_graphs(corr_lst: List[np.ndarray], params: List[float]) -> Dict:
 
 
 def embedding_experiments(func: Callable, *args) -> NoReturn:
-    for exp in ['wave', 'heat', 'graph2vec', 'fgsd']:
+    # for exp in ['wave', 'heat', 'graph2vec', 'fgsd']:
+    for exp in ['heat', 'graph2vec', 'fgsd']:
         c.set('Default Params', 'features_type', exp)
         c.set('Default Params', 'result_path', 'default')
         func(args[0])
@@ -180,15 +179,15 @@ def wrap_func(func_wrapper: Callable, func: Callable) -> Callable:
 
 
 if __name__ == '__main__':
-    # main()
+    main()
     # # data = fetch_data_example()
     # # graph_pre_process()
     start = 0.40
-    stop = 0.70
+    stop = 0.41
     # # config = {'threshold': [0.43, 0.44], 'num_features': [6]}
-    config = {'threshold': list(np.arange(start, stop, step=0.01)),
+    config = {'pmfg': list(np.arange(start, stop, step=0.01)),
               'num_features': list(range(1, 10))}
 
-    embedding_experiments(hyper_parameter, config)
+    # embedding_experiments(hyper_parameter, config)
     # wrap_func(embedding_experiments, hyper_parameter)
     # hyper_parameter(config)
