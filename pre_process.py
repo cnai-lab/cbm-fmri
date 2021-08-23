@@ -16,27 +16,26 @@ from utils import get_data_path, get_names, get_meta_data, get_y_true
 
 def load_scans(scan_paths: List[str], dir_path: str, data_type: str = 'correlation') -> \
         Union[List[np.ndarray], Tuple[List[np.ndarray], List[np.ndarray]]]:
-
     time_series_lst, corr_lst = [], []
     # names = [os.path.basename(path) for path in scan_paths]
-    names = [f'{path}.nii' for path in scan_paths]
+    paths = [os.path.join(dir_path, 'nifti', f'{path}_T2.nii') for path in scan_paths]
     # names = scan_paths
 
     if not default_params.getboolean('save_scans'):
-        return load_saved_scans(dir_path=dir_path, data_type=data_type, names=names)
+        return load_saved_scans(dir_path=dir_path, data_type=data_type)
 
-    for path in scan_paths:
+    for path in paths:
         time_series = path_to_time_series(path)
         time_series_lst.append(time_series)
 
-    save_numpy_lst(dir_path=dir_path, names=names, data_type='time_series', npy_to_save=time_series_lst)
+    save_numpy_lst(dir_path=dir_path, names=get_names(), data_type='time_series', npy_to_save=time_series_lst)
 
     if data_type == 'time_series':
         return time_series_lst
 
     correlations = time_series_to_correlation(time_series_lst)
 
-    save_numpy_lst(dir_path=dir_path, names=names, data_type='correlation', npy_to_save=correlations)
+    save_numpy_lst(dir_path=dir_path, names=get_names(), data_type='correlation', npy_to_save=correlations)
 
     if data_type == 'correlation':
         return correlations
@@ -47,8 +46,9 @@ def load_scans(scan_paths: List[str], dir_path: str, data_type: str = 'correlati
     raise ValueError('Data type should be one of the [correlation, time_series, both]')
 
 
-def load_saved_scans(dir_path, names: List[str], data_type: str) -> List[np.ndarray]:
+def load_saved_scans(dir_path, data_type: str) -> List[np.ndarray]:
     res = []
+    names = get_names()
     for name in names:
         corr_path = os.path.join(dir_path, 'correlation', f'{name}.npy')
         time_series_path = os.path.join(dir_path, 'time_series', f'{name}.npy')
@@ -85,7 +85,6 @@ def load_graphs(dir_path: str, names: List[str], filter_type: str) -> List[nx.Gr
 
 
 def path_to_time_series(path: str) -> np.ndarray:
-
     power_atlas = datasets.fetch_coords_power_2011()
     coords = np.vstack((power_atlas.rois['x'], power_atlas.rois['y'], power_atlas.rois['z'])).T
     spheres_masker = NiftiSpheresMasker(seeds=coords, smoothing_fwhm=4, radius=5., detrend=True, standardize=True,
@@ -106,7 +105,6 @@ def get_anatomical_node_labels():
 
 
 def time_series_to_correlation(time_series_lts: List[np.ndarray], is_abs: bool = True) -> List[np.ndarray]:
-
     connectivity_measure = ConnectivityMeasure(kind='correlation')
     corr_mat_lst = connectivity_measure.fit_transform(time_series_lts)
     for corr_mat in corr_mat_lst:
@@ -153,8 +151,6 @@ def initialize_hyper_parameters():
     return performances, counts_table, features_table, y, avg_acc, corr_lst, filter_type
 
 
-
-
 def get_corr_lst():
     df = get_meta_data()
     df.sort_values(by=[default_params.get('subject')], inplace=True)
@@ -168,12 +164,12 @@ def create_graphs_features_df(filter_type: str, corr_lst: List[np.ndarray], thre
     for thresh in thresholds:
         graphs = build_graphs_from_corr(filter_type=filter_type, corr_lst=corr_lst, param=thresh)
         features_df = main_global_features(graphs)
-        features_df.to_pickle(os.path.join('Graphs_pickle', filter_type, f'graph_{thresh:.2f}.pkl'))
+        features_df.to_pickle(os.path.join('Graphs_pickle', default_params.get('project'),
+                                           filter_type, f'graph_{thresh:.2f}.pkl'))
 
 
 def add_node_features(g: nx.Graph, node_features: np.ndarray) -> nx.Graph:
     return g
-
 
 
 def filter_edges(filter_type: str, graphs: List[nx.Graph], param) -> List[nx.Graph]:
@@ -181,7 +177,7 @@ def filter_edges(filter_type: str, graphs: List[nx.Graph], param) -> List[nx.Gra
     res = []
     for graph in graphs:
         res.append(mapping_filter[filter_type](graph, param))
-        print(f'finished graph !')
+        # print(f'finished graph !')
     return res
 
 
@@ -205,6 +201,7 @@ def remove_edges_specific_weights(graph: nx.Graph, min_thresh: float, max_thresh
     g_copy.remove_edges_from(edges_to_remove)
     return g_copy
 
+
 def filter_by_pmfg(graph: nx.Graph, param: int = 0) -> nx.Graph:
     amount_of_nodes = len(graph.nodes)
     amount_of_edges = 3 * (amount_of_nodes - 2)
@@ -212,7 +209,7 @@ def filter_by_pmfg(graph: nx.Graph, param: int = 0) -> nx.Graph:
     sorted_edges.reverse()
     pmfg = nx.Graph()
     nodes = graph.nodes()
-    nodes_with_attr = [(node, {'label': nodes[i]['label']}) for i, node in enumerate(nodes)]
+    nodes_with_attr = [(int(node), {'label': nodes[i]['label']}) for i, node in enumerate(nodes)]
     pmfg.add_nodes_from(nodes_with_attr)
 
     for edge in sorted_edges:
@@ -240,9 +237,3 @@ def filter_by_amount(graph: nx.Graph, amount_edges: int) -> nx.Graph:
 def sort_graph_edges(graph: nx.Graph) -> nx.edges:
     edges = sorted(graph.edges(data=True), key=lambda t: t[2].get('weight', 1))
     return edges
-
-
-
-
-
-

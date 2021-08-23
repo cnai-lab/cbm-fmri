@@ -1,5 +1,5 @@
 import os
-from typing import NoReturn, DefaultDict, Dict, Tuple
+from typing import NoReturn, DefaultDict, Dict, Tuple, Any, Callable
 import datetime
 
 import networkx as nx
@@ -57,10 +57,31 @@ def create_stability_df(count_table_df: pd.DataFrame) -> NoReturn:
 #     for
 
 
-
 def load_graphs_features(filter_type: str, thresh: float):
-    return pd.read_pickle(os.path.join('Graphs_pickle', filter_type, f'graph_{thresh}.pkl'))
+    return pd.read_pickle(os.path.join('Graphs_pickle', default_params.get('project'),
+                                       filter_type, f'graph_{thresh}.pkl'))
 
+
+def by_task(func: Callable):
+    task = default_params.get('task')
+    if task == 'prediction':
+        c.set('Default Params', 'project', 'stroke_before')
+        c.set('Default Params', 'class_name', 'Is Efficient')
+        return func()
+    elif task == 'derive':
+        c.set('Default Params', 'project', 'stroke_before')
+        c.set('Default Params', 'class_name', 'CBM_T1_Classification')
+        x1 = func()
+
+        c.set('Default Params', 'project', 'stroke_after')
+        c.set('Default Params', 'class_name', 'CBM_T2_Classification')
+        x2 = func()
+        if type(x1) == np.ndarray:
+            return np.concatenate([x1, x2])
+        elif type(x1) == list:
+            return x1 + x2
+        elif type(x1) == pd.DataFrame:
+            return pd.concat([x1, x2]).dropna(axis=1)
 
 
 def save_config(conf_to_save: Dict):
@@ -98,25 +119,36 @@ def get_y_true() -> np.ndarray:
     return df[default_params.get('class_name')].values
 
 
+def get_subjects() -> np.ndarray:
+    df = get_meta_data()
+    subject_col = default_params.get('subject')
+    df.sort_values(by=[subject_col], inplace=True)
+    return df[subject_col].values
+
+
 def get_y_true_regression() -> np.ndarray:
     df = get_meta_data()
     df.sort_values(by=['Subject'], inplace=True)
     return df['Delta Change'].values
 
 def get_save_path() -> str:
-    save_mapping_by_proj = {'stroke': STROKE_SAVE_PATH_PARENT, 'adhd': ADHD_SAVE_PATH_PARENT}
+    save_mapping_by_proj = {'stroke_before': STROKE_SAVE_PATH_PARENT, 'stroke_after': STROKE_SAVE_PATH_PARENT,
+                            'adhd': ADHD_SAVE_PATH_PARENT}
     project_type = default_params.get('project')
     return save_mapping_by_proj[project_type]
 
 
 def get_data_path() -> str:
-    data_path_mapping_by_proj = {'stroke': SCANS_DIR_BEFORE, 'adhd': ADHD_DATA_PATH}
+    # data_path_mapping_by_proj = {'stroke': SCANS_DIR_BEFORE, 'adhd': ADHD_DATA_PATH}
+    data_path_mapping_by_proj = {'stroke_before': SCANS_DIR_BEFORE, 'stroke_after': SCANS_DIR_AFTER,
+                                'adhd': ADHD_DATA_PATH}
     project_type = default_params.get('project')
     return data_path_mapping_by_proj[project_type]
 
 
 def get_meta_data() -> pd.DataFrame:
-    data_path_mapping_by_proj = {'stroke': STROKE_EXCEL_DATA, 'adhd': ADHD_EXCEL_DATA}
+    data_path_mapping_by_proj = {'stroke_before': STROKE_EXCEL_DATA, 'stroke_after': STROKE_EXCEL_DATA,
+                                 'adhd': ADHD_EXCEL_DATA}
     project_type = default_params.get('project')
     return pd.read_excel(data_path_mapping_by_proj[project_type])
 
@@ -138,6 +170,7 @@ def save_results(perf: DefaultDict) -> NoReturn:
         res['number of features'].append(num_features)
         res['Accuracy'].append(acc)
     pd.DataFrame(res).to_csv(os.path.join(get_results_path(), 'results.csv'))
+
 
 
 def get_names() -> List[str]:

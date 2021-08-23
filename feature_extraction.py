@@ -51,7 +51,6 @@ def embedding_features(graphs: List[nx.Graph], embedding_func: Callable) -> Defa
     return embed_as_dic
 
 
-
 def features_by_type(feat_type: str, graphs: List[nx.Graph], dim: int):
 
     def heat_embedding():
