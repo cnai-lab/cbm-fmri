@@ -11,7 +11,7 @@ import nilearn.datasets as datasets
 from copy import deepcopy
 from conf_pack.configuration import *
 # dataloader ->
-from utils import get_data_path, get_names, get_meta_data, get_y_true
+from utils import get_data_path, get_names, get_meta_data, get_y_true, by_task
 
 
 def load_scans(scan_paths: List[str], dir_path: str, data_type: str = 'correlation') -> \
@@ -144,9 +144,9 @@ def build_graphs_with_activations(scans_path: List[str], filter_type: str = 'den
 
 def initialize_hyper_parameters():
     performances, counts_table, features_table = defaultdict(list), defaultdict(int), defaultdict(int)
-    y = get_y_true()
+    y = by_task(lambda: get_y_true())
     avg_acc = 0
-    corr_lst = get_corr_lst()
+    corr_lst = by_task(lambda: get_corr_lst())
     filter_type = default_params.get('filter')
     return performances, counts_table, features_table, y, avg_acc, corr_lst, filter_type
 

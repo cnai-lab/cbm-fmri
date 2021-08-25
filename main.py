@@ -39,8 +39,8 @@ def main():
 
             if not is_globals:
                 features = features_by_type(default_params.get('features_type'), graphs[thresh], feat_num)
-
-            acc, _, _ = train_model(features, labels, feat_num)
+            relevant_names = by_task(lambda: get_names())
+            acc, _, _ = train_model(features, labels, feat_num, relevant_names)
             performances[(thresh, feat_num)].append(acc)
     save_results(performances)
 
@@ -57,11 +57,12 @@ def hyper_parameter(hyper_parameters: Dict):
     # Todo: Change to lso when not regular case
     loo = lso(by_task(lambda: get_names()))
     meta_data = defaultdict(list)
+
     performances, counts_table, features_table, y, avg_acc, corr_lst, filter_type = initialize_hyper_parameters()
     config_update(copy.deepcopy(hyper_parameters))
     is_globals = default_params.get('features_type') == 'globals'
     if not is_globals:
-        graphs = get_graphs(by_task(get_corr_lst()), hyper_parameters[filter_type])
+        graphs = get_graphs(by_task(lambda: get_corr_lst()), hyper_parameters[filter_type])
 
     for train_idx, test_idx in loo.split(corr_lst):
 
@@ -78,12 +79,18 @@ def hyper_parameter(hyper_parameters: Dict):
             for num_features in hyper_parameters['num_features']:
 
                 if not is_globals:
-                    df = by_task(lambda: features_by_type(default_params.get('features_type'),
-                                                          graphs[criteria_thresh], num_features))
+                    df = features_by_type(default_params.get('features_type'),
+                                                          graphs[criteria_thresh], num_features)
                 X_train, X_test = df.iloc[train_idx], df.iloc[test_idx]
                 y_train, y_test = y[train_idx], y[test_idx]
-
-                acc, model, feat_names = train_model(X_train, y_train, num_features)
+                relevant_names = np.array(by_task(lambda: get_names()))[train_idx]
+                acc, model, feat_names = train_model(X_train, y_train, num_features, relevant_names)
+                meta_data['pred'].append(model.predict(X_test))
+                meta_data['threshold'].append(criteria_thresh)
+                meta_data['number of features'].append(num_features)
+                meta_data['features'].append(feat_names)
+                meta_data['classification_true_ground'].append(y_test)
+                meta_data['CBM_true_ground'].append(by_task(lambda: get_y_true_regression())[test_idx])
 
                 if acc > best_acc:
                     best_acc = acc
@@ -98,18 +105,13 @@ def hyper_parameter(hyper_parameters: Dict):
         acc, pred = predict_by_criterions(model=best_model, filter_type=filter_type, thresh=best_thresh, idx=test_idx,
                                          y=y, col_names=feat_names_best, best_num=best_num, df=df)
         avg_acc += acc
-        meta_data['pred'].append(pred)
-        meta_data['threshold'].append(best_thresh)
-        meta_data['number of features'].append(best_num)
-        meta_data['features'].append(feat_names_best)
-        meta_data['classification_true_ground'].append(y)
-        meta_data['CBM_true_ground'].append(by_task(lambda :get_y_true_regression())[test_idx])
 
         counts_table[(best_thresh, best_num)] = counts_table[(best_thresh, best_num)] + 1
 
         for feat in feat_names_best:
             features_table[feat] = features_table[feat] + 1
-
+    print(avg_acc)
+    avg_acc = np.float(avg_acc)
     avg_acc /= len(y)
 
     counts_table_refactored = dict_to_df(counts_table, 'params', 'num_counts', 'count_table.csv')
@@ -202,10 +204,10 @@ def main_derivate(params: Dict):
 
 
 if __name__ == '__main__':
-    main()
+    # main()
     # # data = fetch_data_example()
     # graph_pre_process()
-    start = 0.43
+    start = 0.44
     stop = 0.45
     # # config = {'threshold': [0.43, 0.44], 'num_features': [6]}
     config = {'threshold': list(np.arange(start, stop, step=0.01)),
@@ -213,4 +215,4 @@ if __name__ == '__main__':
 
     # embedding_experiments(hyper_parameter, config)
     # wrap_func(embedding_experiments, hyper_parameter)
-    # hyper_parameter(config)
+    hyper_parameter(config)

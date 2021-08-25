@@ -63,14 +63,14 @@ def train_model_subject_out(df1: pd.DataFrame, y1: np.ndarray, df2: pd.DataFrame
     return train_suffix(pd.concat([df1, df2]), num_features, res, np.concatenate((y1, y2)))
 
 
-def train_model(df: pd.DataFrame, y: np.ndarray, num_features: int) -> \
+def train_model(df: pd.DataFrame, y: np.ndarray, num_features: int, relevant_names) -> \
         Tuple[float, RandomForestClassifier, List[str]]:
-    loo = lso(by_task(lambda: get_names()))
+    loo = lso(relevant_names)
     df = df.fillna(0)
     df = normalize_features(df)
     args_lst, res = [], []
 
-
+    df = df.reset_index(drop=True)
     for train_idx, test_idx in loo.split(df):
 
         X_train, X_test = df.iloc[train_idx], df.iloc[test_idx]
@@ -118,7 +118,7 @@ def predict_by_criterions(**kwargs) -> Tuple[float, float]:
     y_relevant = y[idx]
     prediction = model.predict(df_relevant_features)
     acc = accuracy_score(prediction, y_relevant)
-    return prediction, acc
+    return acc, prediction
 
 
 def predict_by_proba(model, X_test, thresh: float = 0.6):
@@ -150,9 +150,9 @@ def select_features(x_train: pd.DataFrame, y_true: np.ndarray, num_features: int
         return mutual_info_classif(X, y)
 
     if default_params.get('features_type') == 'globals':
-        vt = VarianceThreshold()
-        vt.fit(x_train)
-        x_train = x_train[x_train.columns[vt.get_support(indices=True)]]
+        # vt = VarianceThreshold()
+        # vt.fit(x_train)
+        # x_train = x_train[x_train.columns[vt.get_support(indices=True)]]
         selector = SelectKBest(inf_gain, k=num_features).fit(x_train, y_true)
         mask = selector.get_support()
         values = mutual_info_classif(x_train, y_true)[mask]
