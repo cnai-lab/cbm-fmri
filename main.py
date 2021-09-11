@@ -1,14 +1,12 @@
-import numpy as np
-from sklearn.model_selection import LeaveOneOut
+from conf_pack.opts import parser
 import copy
 from conf_pack.configuration import tune_parameters
 from pre_process import build_graphs_from_corr, load_scans, create_graphs_features_df, get_corr_lst, \
     initialize_hyper_parameters
 from feature_extraction import main_global_features, features_by_type
-from train import train_model, predict_by_criterions, info_gain_all_features, train_model_subject_out, lso
+from train import train_model, predict_by_criterions, info_gain_all_features, train_model_subject_out, lso, clean_df
 import nilearn
 from utils import *
-from conf_pack.opts import parser
 from collections import defaultdict
 from typing import Callable
 
@@ -24,12 +22,15 @@ def main():
     min_feat = default_params.getint('min_features')
     max_feat = default_params.getint('max_features')
     filter_type = default_params.get('filter')
+    min_thresh = default_params.getfloat('min_thresh')
+    max_thresh = default_params.getfloat('max_thresh')
     is_globals = default_params.get('features_type') == 'globals'
+    step = default_params.getfloat('step')
 
     if not is_globals:
-        graphs = get_graphs(by_task(lambda: get_corr_lst()), tune_parameters[filter_type])
+        graphs = get_graphs(by_task(lambda: get_corr_lst()), list(np.arange(min_thresh, max_thresh, step)))
 
-    for thresh in tune_parameters[filter_type]:
+    for thresh in np.arange(min_thresh, max_thresh, step):
 
         if is_globals:
             features = by_task(lambda: load_graphs_features(filter_type, thresh))
@@ -85,10 +86,11 @@ def hyper_parameter(hyper_parameters: Dict):
                 y_train, y_test = y[train_idx], y[test_idx]
                 relevant_names = np.array(by_task(lambda: get_names()))[train_idx]
                 acc, model, feat_names = train_model(X_train, y_train, num_features, relevant_names)
+                X_test = clean_df(X_test, feat_names)
                 meta_data['pred'].append(model.predict(X_test))
                 meta_data['threshold'].append(criteria_thresh)
                 meta_data['number of features'].append(num_features)
-                meta_data['features'].append(feat_names)
+                # meta_data['features'].append(feat_names.values)
                 meta_data['classification_true_ground'].append(y_test)
                 meta_data['CBM_true_ground'].append(by_task(lambda: get_y_true_regression())[test_idx])
 
@@ -115,6 +117,7 @@ def hyper_parameter(hyper_parameters: Dict):
     avg_acc /= len(y)
 
     counts_table_refactored = dict_to_df(counts_table, 'params', 'num_counts', 'count_table.csv')
+    pd.DataFrame(meta_data).to_csv(os.path.join(get_results_path(), 'meta_data.csv'))
     create_stability_df(counts_table_refactored)
     feat_table_refactored = dict_to_df(features_table, 'feature', 'num_counts', 'feat_count_table.csv')
     feat_table_refactored.sort_values(by='num_counts', inplace=True)
@@ -159,8 +162,14 @@ def example():
 def graph_pre_process():
 
     corr_lst = by_task(lambda: get_corr_lst())
-    create_graphs_features_df(corr_lst=corr_lst, filter_type='density', thresholds=np.arange(start=0.01, stop=0.20,
-                                                                                               step=0.01))
+    create_graphs_features_df(corr_lst=corr_lst, filter_type='pmfg', thresholds=np.arange(start=0.40, stop=0.41,
+
+                                                                                             step=0.01))
+
+
+def build_and_save_graphs(param):
+    corr_lst = by_task(lambda: get_corr_lst())
+    build_graphs_from_corr(default_params.get('filter'), corr_lst, param)
 
 
 def get_graphs(corr_lst: List[np.ndarray], params: List[float]) -> Dict:
@@ -171,8 +180,8 @@ def get_graphs(corr_lst: List[np.ndarray], params: List[float]) -> Dict:
 
 
 def embedding_experiments(func: Callable, *args) -> NoReturn:
-    # for exp in ['wave', 'heat', 'graph2vec', 'fgsd']:
-    for exp in  ['fgsd']:
+    for exp in ['wave', 'heat', 'fgsd', 'graph2vec']:
+    # for exp in  ['fgsd']:
         c.set('Default Params', 'features_type', exp)
         c.set('Default Params', 'result_path', 'default')
         func(args[0])
@@ -203,16 +212,29 @@ def main_derivate(params: Dict):
         train_model_subject_out(df, y1, df2, y2, num_features)
 
 
-if __name__ == '__main__':
-    # main()
-    # # data = fetch_data_example()
-    # graph_pre_process()
-    start = 0.44
-    stop = 0.45
-    # # config = {'threshold': [0.43, 0.44], 'num_features': [6]}
-    config = {'threshold': list(np.arange(start, stop, step=0.01)),
-              'num_features': list(range(5, 6))}
+def initalize_params(args):
+    c.set('Default Params', 'min_thresh', str(args.min_threshold))
+    c.set('Default Params', 'max_thresh', str(args.max_threshold))
+    c.set('Default Params', 'min_features', str(args.min_features))
+    c.set('Default Params', 'max_features', str(args.max_features))
+    c.set('Default Params', 'filter', args.criteria)
+    c.set('Default Params', 'task', args.task)
+    c.set('Default Params', 'features_type', args.f_type)
+    c.set('Default Params', 'step', str(args.step))
 
+
+
+if __name__ == '__main__':
+    # graph_pre_process()
+    ###############
+    initalize_params(parser.parse_args())
+    print(parser.parse_args().min_threshold)
+    config = {default_params.get('filter'): list(np.arange(default_params.getfloat('min_thresh'),
+                                                           default_params.getfloat('max_thresh'),
+                                                           step=default_params.getfloat('step'))),
+              'num_features': list(range(default_params.getint('min_features'), default_params.getint('max_features')))}
+    # main()
+    hyper_parameter(config)
+    ######  #########
     # embedding_experiments(hyper_parameter, config)
     # wrap_func(embedding_experiments, hyper_parameter)
-    hyper_parameter(config)

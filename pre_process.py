@@ -18,7 +18,8 @@ def load_scans(scan_paths: List[str], dir_path: str, data_type: str = 'correlati
         Union[List[np.ndarray], Tuple[List[np.ndarray], List[np.ndarray]]]:
     time_series_lst, corr_lst = [], []
     # names = [os.path.basename(path) for path in scan_paths]
-    paths = [os.path.join(dir_path, 'nifti', f'{path}_T2.nii') for path in scan_paths]
+    append = 'T1' if default_params.get('project') == 'stroke_before' else 'T2'
+    paths = [os.path.join(dir_path, 'nifti', f'{path}_{append}.nii') for path in scan_paths]
     # names = scan_paths
 
     if not default_params.getboolean('save_scans'):
@@ -162,7 +163,11 @@ def get_corr_lst():
 def create_graphs_features_df(filter_type: str, corr_lst: List[np.ndarray], thresholds: Union[List[float], np.ndarray]):
     os.makedirs(f'Graphs_pickle/{filter_type}', exist_ok=True)
     for thresh in thresholds:
-        graphs = build_graphs_from_corr(filter_type=filter_type, corr_lst=corr_lst, param=thresh)
+        if filter_type == 'pmfg':
+            names = get_names()
+            graphs = load_graphs(get_data_path(), names, filter_type)
+        else:
+            graphs = build_graphs_from_corr(filter_type=filter_type, corr_lst=corr_lst, param=thresh)
         features_df = main_global_features(graphs)
         features_df.to_pickle(os.path.join('Graphs_pickle', default_params.get('project'),
                                            filter_type, f'graph_{thresh:.2f}.pkl'))

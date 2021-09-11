@@ -168,6 +168,11 @@ def normalize_features(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
+def clean_df(df: pd.DataFrame, feat_names: List[str]) -> pd.DataFrame:
+    df = df.fillna(0)
+    df = normalize_features(df)
+    return df[feat_names]
+
 def info_gain_all_features(df: pd.DataFrame, y_true: np.ndarray, threshold: float):
     df_res = defaultdict(list)
     values = mutual_info_classif(X=df.fillna(0), y=y_true)
@@ -185,6 +190,7 @@ def info_gain_all_features(df: pd.DataFrame, y_true: np.ndarray, threshold: floa
 
 if __name__ == '__main__':
     print()
+
     # c.set('Default Params', 'project', 'stroke_before')
     # c.set('Default Params', 'class_name', 'CBM_T1_Classification')
     # df = features_by_type('wave', graphs=get_graphs(get_corr_lst(), np.arange(0.01, 0.2, step=0.01)), )

@@ -58,7 +58,7 @@ def create_stability_df(count_table_df: pd.DataFrame) -> NoReturn:
 
 
 def load_graphs_features(filter_type: str, thresh: float):
-    return pd.read_pickle(os.path.join('Graphs_pickle', default_params.get('project'),
+        return pd.read_pickle(os.path.join('Graphs_pickle', default_params.get('project'),
                                        filter_type, f'graph_{thresh}.pkl'))
 
 
@@ -82,7 +82,14 @@ def by_task(func: Callable):
             return x1 + x2
         elif type(x1) == pd.DataFrame:
             return pd.concat([x1, x2]).dropna(axis=1)
-
+    elif task == 'derive_T1':
+        c.set('Default Params', 'project', 'stroke_before')
+        c.set('Default Params', 'class_name', 'CBM_T1_Classification')
+        return func()
+    elif task == 'derive_T2':
+        c.set('Default Params', 'project', 'stroke_after')
+        c.set('Default Params', 'class_name', 'CBM_T2_Classification')
+        return func()
 
 def save_config(conf_to_save: Dict):
     df = pd.DataFrame()
