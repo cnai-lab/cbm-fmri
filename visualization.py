@@ -122,3 +122,4 @@ def scatter_plot(features: Dict, feature_name: str) -> NoReturn:
         plt.savefig(os.path.join(get_results_path(), f'{key}.png'))
         plt.clf()
     # plt.savefig(os.path.join(get_results_path(), f'box_plot_{feature_name}.png'))
+

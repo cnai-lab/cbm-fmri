@@ -22,7 +22,7 @@ def load_scans(scan_paths: List[str], dir_path: str, data_type: str = 'correlati
     paths = [os.path.join(dir_path, 'nifti', f'{path}_{append}.nii') for path in scan_paths]
     # names = scan_paths
 
-    if not default_params.getboolean('save_scans'):
+    if default_params.getboolean('load_scans'):
         return load_saved_scans(dir_path=dir_path, data_type=data_type)
 
     for path in paths:

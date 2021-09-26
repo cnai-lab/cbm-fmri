@@ -19,7 +19,8 @@ from conf_pack.configuration import default_params, c
 # from feature_extraction import features_by_type
 # from main import get_graphs
 # from pre_process import get_corr_lst
-from utils import write_selected_features, load_graphs_features, get_results_path, get_names, get_y_true, by_task
+from utils import write_selected_features, load_graphs_features, get_results_path, get_names, get_y_true, by_task, \
+    get_y_true_regression
 
 
 class lso:
@@ -98,10 +99,11 @@ def train_model_iteration(X_train: pd.DataFrame, y_train: np.ndarray,
     model = load_model('rf')
 
     feat_names, feat_values = select_features(X_train, y_train, num_features)
-    write_selected_features(feat_names, feat_values)
     X_train, X_test = X_train[feat_names], X_test[feat_names]
     model.fit(X_train, y_train)
-    return accuracy_score(model.predict(X_test), y_test)
+    prediction = model.predict(X_test)
+    # write_selected_features(prediction, y_test)
+    return accuracy_score(prediction, y_test)
 
 
 def predict_by_criterions(**kwargs) -> Tuple[float, float]:
@@ -145,6 +147,10 @@ def load_model(model_type: str) -> Union[nn.Module, RandomForestClassifier, None
     return model
 
 
+def compute_inf_gain(X, feat_names, y):
+    return mutual_info_classif(X[feat_names], y)
+
+
 def select_features(x_train: pd.DataFrame, y_true: np.ndarray, num_features: int) -> Tuple[List[str], List[float]]:
     def inf_gain(X, y):
         return mutual_info_classif(X, y)
@@ -185,11 +191,31 @@ def info_gain_all_features(df: pd.DataFrame, y_true: np.ndarray, threshold: floa
     else:
         pd.DataFrame(df_res, index=df_res['threshold']).to_csv(full_path)
 
-#
+
+def plot():
+
+    graphs = load_graphs_features('threshold', 0.44)
+    rich_21 = graphs['rich_club_coefficient_21'].values
+    rich_24 = graphs['rich_club_coefficient_24'].values
+    rich_25 = graphs['rich_club_coefficient_25'].values
+    avg_neigh_deg10 = graphs['average_neighbor_degree_10'].values
+    avg_neigh_deg88 = graphs['average_neighbor_degree_88'].values
+    pagerank_var = graphs['pagerank_numpy_variance']
+    labels = get_y_true_regression()
+    df = {'rich_club_coefficient_21': rich_21, 'rich_club_coefficient_24': rich_24,
+          'rich_club_coefficient_25': rich_25,
+          'average_neighbor_degree_10': avg_neigh_deg10,
+          'average_neighbor_degree_88': avg_neigh_deg88, 'labels': labels,
+          'pagerank_var': pagerank_var}
+    pd.DataFrame(df).to_csv('results_or3.csv', index=False)
+
 
 
 if __name__ == '__main__':
-    print()
+    plot()
+
+
+
 
     # c.set('Default Params', 'project', 'stroke_before')
     # c.set('Default Params', 'class_name', 'CBM_T1_Classification')

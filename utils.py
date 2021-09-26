@@ -59,7 +59,7 @@ def create_stability_df(count_table_df: pd.DataFrame) -> NoReturn:
 
 def load_graphs_features(filter_type: str, thresh: float):
         return pd.read_pickle(os.path.join('Graphs_pickle', default_params.get('project'),
-                                       filter_type, f'graph_{thresh}.pkl'))
+                                       filter_type, f'graph_{thresh:.2f}.pkl'))
 
 
 def by_task(func: Callable):
